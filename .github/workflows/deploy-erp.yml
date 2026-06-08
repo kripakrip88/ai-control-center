@@ -43,7 +43,10 @@ jobs:
             echo "=== Install pnpm if needed ==="
             if ! command -v pnpm &> /dev/null; then
               echo "Installing pnpm..."
-              npm install -g pnpm
+              npm install -g pnpm@11
+            else
+              echo "Upgrading pnpm to v11..."
+              npm install -g pnpm@11
             fi
             pnpm --version
 
