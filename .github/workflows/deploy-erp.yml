@@ -53,11 +53,9 @@ jobs:
             echo "=== Setup Environment ==="
             cd apps/erp-web
 
-            if [ ! -f .env ]; then
-              echo "Creating .env file..."
-              echo 'DATABASE_URL="postgresql://erp_user:ErpMetal2025x@localhost:5432/erp_metal"' > .env
-              echo 'NODE_ENV=production' >> .env
-            fi
+            echo "Creating .env file..."
+            echo 'DATABASE_URL="postgresql://erp_user:ErpMetal2025x@localhost:5432/erp_metal"' > .env
+            echo 'NODE_ENV=production' >> .env
 
             echo "=== Database Migration ==="
             npx prisma migrate deploy
