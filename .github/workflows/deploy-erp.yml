@@ -38,11 +38,18 @@ jobs:
             echo "=== Git Pull ==="
             git pull origin main
 
+            echo "=== Install pnpm if needed ==="
+            if ! command -v pnpm &> /dev/null; then
+              echo "Installing pnpm..."
+              npm install -g pnpm
+            fi
+            pnpm --version
+
             echo "=== Install Dependencies ==="
-            cd apps/erp-web
-            npm install --production
+            pnpm install --frozen-lockfile --prod
 
             echo "=== Database Migration ==="
+            cd apps/erp-web
             npx prisma migrate deploy
             npx prisma generate
 
