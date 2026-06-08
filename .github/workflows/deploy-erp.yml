@@ -40,17 +40,8 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            echo "=== Install pnpm if needed ==="
-            if ! command -v pnpm &> /dev/null; then
-              echo "Installing pnpm..."
-              npm install -g pnpm@10
-            else
-              CURRENT_PNPM=$(pnpm --version)
-              if [[ "$CURRENT_PNPM" != 10.* ]]; then
-                echo "Upgrading pnpm to v10..."
-                npm install -g pnpm@10
-              fi
-            fi
+            echo "=== Install pnpm v10 ==="
+            npm install -g pnpm@10.34.1
             pnpm --version
 
             echo "=== Install Dependencies ==="
