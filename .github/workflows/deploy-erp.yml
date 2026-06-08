@@ -35,8 +35,10 @@ jobs:
               git clone https://github.com/kripakrip88/ai-control-center.git .
             }
 
-            echo "=== Git Pull ==="
-            git pull origin main
+            echo "=== Git Update ==="
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
 
             echo "=== Install pnpm if needed ==="
             if ! command -v pnpm &> /dev/null; then
