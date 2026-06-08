@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МеталлПро ERP — Расчёт КП</title>
+<script src="nav.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f12;--panel:#161b22;--card:#1c2330;--hov:#1e2738;--brd:#252d3a;--brdl:#2d3748;
+  --txt:#e8ecf0;--txts:#8b9ab0;--txtm:#4a5568;
+  --blue:#3b82f6;--cyan:#06b6d4;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--violet:#8b5cf6;
+  --accent:#3b82f6;--surface:var(--panel);--border:var(--brd);--border2:var(--brdl);--text:var(--txt);--muted:var(--txts);
+}
+.light{
+  --bg:#eef1f5;--panel:#ffffff;--card:#f4f6f9;--hov:#e2e8f0;--brd:#dde2ea;--brdl:#c8d0dc;
+  --txt:#1a1d23;--txts:#5a6478;--txtm:#9aa3b2;
+}
+html,body{height:100%;font-family:'Inter',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);overflow:hidden}
+
+/* SHELL */
+.shell{display:flex;height:100vh}
+
+
+/* MAIN */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);margin-left:var(--sbw)}
+.topbar{background:var(--panel);border-bottom:1px solid var(--brd);padding:0 12px;height:40px;display:flex;align-items:center;flex-shrink:0;gap:8px}
+.bc{display:flex;align-items:center;gap:3px;font-size:10.5px;color:var(--txtm)}
+.bc-sep{color:var(--txtm);margin:0 2px}
+.bcc{color:var(--txt);font-weight:500}
+.topbar-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* PAGES */
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.active{display:flex}
+
+/* WORKSPACE (quote page) */
+.ws{display:grid;grid-template-columns:1fr 238px;flex:1;overflow:hidden}
+.ed{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:16px}
+.ed::-webkit-scrollbar{width:3px}
+.ed::-webkit-scrollbar-thumb{background:var(--brdl);border-radius:3px}
+
+/* OTHER PAGES */
+.page-content{flex:1;overflow-y:auto;padding:16px}
+
+/* ORDER META */
+.om{background:var(--panel);border:1px solid var(--brd);border-radius:7px;overflow:hidden;flex-shrink:0}
+.omt{padding:10px 12px;border-bottom:1px solid var(--brd)}
+.om-num-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.onum-in{font-size:15px;font-weight:700;color:var(--txt);background:transparent;border:1px solid transparent;border-radius:4px;padding:1px 5px;transition:.15s;min-width:120px;font-family:'Inter',sans-serif}
+.onum-in:hover{border-color:var(--brdl)}.onum-in:focus{outline:none;border-color:var(--blue);background:var(--card)}
+.tg{font-size:9.5px;padding:2px 6px;border-radius:6px;border:1px solid var(--brd);color:var(--txts)}
+.tg.bl{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--blue)}
+.tg.gr{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)}
+.om-fields{display:flex;gap:12px;flex-wrap:wrap}
+.om-field{display:flex;flex-direction:column;gap:2px}
+.om-flbl{font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--txtm)}
+.om-fin{background:transparent;border:1px solid transparent;border-radius:4px;padding:2px 5px;font-size:11px;font-family:'Inter',sans-serif;color:var(--txt);transition:.15s;min-width:130px}
+.om-fin:hover{border-color:var(--brdl)}.om-fin:focus{outline:none;border-color:var(--blue);background:var(--card)}
+.om-fin::placeholder{color:var(--txtm)}
+
+/* TOTALS BAR */
+.totals-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--brd)}
+.tb2{padding:8px 12px;border-right:1px solid var(--brd)}
+.tb2:last-child{border-right:none}
+.tbl{font-size:8.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--txtm);margin-bottom:3px}
+.tbv{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;line-height:1;color:var(--txt)}
+.tbs{font-size:9px;color:var(--txtm);margin-top:2px}
+.tbbar{height:2px;background:var(--brd);border-radius:2px;margin-top:5px;overflow:hidden}
+.tbf{height:100%;border-radius:2px}
+.tfb{background:var(--blue)}.tfg{background:var(--green)}.tfa{background:var(--amber)}.tfv{background:var(--violet)}
+
+/* ACTION BAR */
+.ab{padding:7px 10px;display:flex;align-items:center;gap:5px;border-top:1px solid var(--brd);flex-wrap:wrap}
+.abtn{background:var(--card);border:1px solid var(--brd);color:var(--txts);padding:4px 9px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.abtn:hover{color:var(--txt);border-color:var(--brdl)}
+.abtn.pr{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);color:var(--green);font-weight:500}
+.abtn.pr:hover{background:rgba(16,185,129,.2)}
+.absep{width:1px;height:16px;background:var(--brd);flex-shrink:0}
+.ai{background:var(--card);border:1px solid var(--brd);border-radius:4px;color:var(--txt);padding:4px 8px;font-size:11px;font-family:inherit;min-width:160px;flex:1;max-width:220px}
+.ai:focus{outline:none;border-color:var(--blue)}
+.ai::placeholder{color:var(--txtm)}
+.ai-qty{background:var(--card);border:1px solid var(--brd);border-radius:4px;color:var(--txt);padding:4px 6px;font-size:11px;font-family:'DM Mono',monospace;width:48px;text-align:center}
+.ai-qty:focus{outline:none;border-color:var(--blue)}
+.aadd{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--blue);padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:500}
+.aadd:hover{background:rgba(59,130,246,.2)}
+
+/* AI BANNER */
+.ai-banner{background:rgba(88,28,135,.15);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.ai-banner > span:first-child{font-size:18px;flex-shrink:0;color:#a78bfa}
+.ai-banner-title{font-size:12.5px;font-weight:700;color:#c4b5fd}
+.ai-banner-sub{font-size:11px;color:var(--txts);margin-top:2px}
+.ai-stats{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.as{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace}
+.as-ok{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+.as-warn{background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.3)}
+.as-err{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.ai-banner button{background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap}
+.ai-banner button:hover{background:rgba(139,92,246,.35)}
+/* AI part row */
+.ai-row-ok   td:first-child{border-left:3px solid #34d399}
+.ai-row-warn td:first-child{border-left:3px solid #fbbf24}
+.ai-row-err  td:first-child{border-left:3px solid #f87171}
+.ai-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle;font-family:'DM Mono',monospace}
+.ai-ok  {background:rgba(16,185,129,.15);color:#34d399}
+.ai-warn{background:rgba(245,158,11,.12);color:#fbbf24}
+.ai-err {background:rgba(239,68,68,.12);color:#f87171}
+.ai-acts{display:flex;gap:3px;margin-top:3px}
+.ai-btn{font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer;border:none;font-weight:700;line-height:1.4}
+.ai-btn-ok{background:rgba(16,185,129,.2);color:#34d399}
+.ai-btn-ok:hover{background:rgba(16,185,129,.35)}
+.ai-btn-sw{background:rgba(245,158,11,.15);color:#fbbf24}
+.ai-btn-sw:hover{background:rgba(245,158,11,.3)}
+/* AI unresolved row */
+.ai-unresolved{padding:8px 10px;display:flex;align-items:center;gap:8px;background:rgba(239,68,68,.04)}
+.ai-raw{font-size:11.5px;color:var(--txts);font-style:italic;font-family:'DM Mono',monospace}
+/* Remember alias checkbox */
+#ai-remember-wrap{display:none;font-size:10.5px;color:var(--txts);align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--brd)}
+
+/* ASSEMBLY CARD */
+.ac{background:var(--panel);border:1px solid var(--brd);border-radius:8px;overflow:visible;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15);margin-bottom:10px}
+.ah{padding:7px 10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.atog{font-size:9px;color:var(--txtm);cursor:pointer;width:11px;user-select:none;flex-shrink:0;transition:.1s}
+.aname{font-size:12.5px;font-weight:600;color:var(--txt);white-space:nowrap}
+.aqty{font-family:'DM Mono',monospace;font-size:11px;background:var(--card);border:1px solid var(--brd);padding:2px 6px;border-radius:3px;color:var(--txts);width:52px;text-align:center}
+.aqty:focus{outline:none;border-color:var(--blue);color:var(--txt)}
+.atots{display:flex;gap:4px;flex-wrap:wrap}
+.ch{font-family:'DM Mono',monospace;font-size:9.5px;padding:2px 5px;border-radius:6px;font-weight:500}
+.chw{background:rgba(59,130,246,.12);color:var(--blue)}
+.chp{background:rgba(245,158,11,.12);color:var(--amber)}
+.chc{background:rgba(16,185,129,.12);color:var(--green)}
+.aacts{display:flex;gap:3px;margin-left:auto;flex-shrink:0;flex-wrap:wrap}
+.xb{padding:2px 7px;border-radius:4px;font-size:10px;cursor:pointer;font-family:inherit;border:1px solid;transition:.15s;font-weight:500;white-space:nowrap}
+.xm{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--blue)}.xm:hover{background:rgba(59,130,246,.2)}
+.xf{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--amber)}.xf:hover{background:rgba(245,158,11,.2)}
+.xt{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:var(--violet)}.xt:hover{background:rgba(139,92,246,.2)}
+.xd{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:var(--red)}.xd:hover{background:rgba(239,68,68,.18)}
+.abody{border-top:1px solid var(--brd);border-radius:0 0 7px 7px;overflow:hidden}
+.sg{border-bottom:1px solid var(--brd)}.sg:last-child{border-bottom:none}
+.sgh{padding:5px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;background:var(--card);transition:.15s;user-select:none}
+.sgh:hover{background:var(--hov)}
+.sgt{font-size:9px;color:var(--txtm);width:10px;flex-shrink:0}
+.sgl{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.sgl.m{color:var(--blue)}.sgl.f{color:var(--amber)}.sgl.l{color:var(--violet)}
+.sgc{font-size:9px;background:var(--hov);border:1px solid var(--brd);padding:1px 4px;border-radius:5px;color:var(--txtm);font-family:'DM Mono',monospace}
+.sgs{margin-left:auto;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--txtm)}
+
+/* INLINE SEARCH */
+.search-bar{padding:5px 8px;border-bottom:1px solid var(--brd);position:relative;z-index:10}
+.search-wrap{position:relative;display:flex;align-items:center}
+.search-ico{position:absolute;left:7px;font-size:10px;color:var(--txtm);pointer-events:none}
+.search-in{width:100%;background:var(--card);border:1px solid var(--brd);border-radius:5px;color:var(--txt);padding:4px 8px 4px 24px;font-size:11px;font-family:inherit;transition:.15s}
+.search-in:focus{outline:none;border-color:var(--blue)}
+.search-in::placeholder{color:var(--txtm)}
+.search-dropdown{display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--panel);border:1px solid var(--brdl);border-radius:6px;z-index:200;overflow:hidden;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.search-dropdown.open{display:block}
+.sd-item{padding:6px 10px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:.12s;border-bottom:1px solid var(--brd)}
+.sd-item:last-child{border-bottom:none}
+.sd-item:hover,.sd-item.active{background:var(--hov)}
+.sd-code{font-family:'DM Mono',monospace;font-size:9px;color:var(--txts);flex-shrink:0;width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-name{font-size:11px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-price{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--green);flex-shrink:0}
+.sd-empty{padding:10px;text-align:center;color:var(--txtm);font-size:11px}
+
+/* PARTS TABLE */
+.pt{width:100%;border-collapse:collapse;table-layout:fixed}
+.pt th{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--txts);padding:5px 8px;text-align:left;background:var(--card);border-bottom:1px solid var(--brd);white-space:nowrap;overflow:hidden}
+.pt td{padding:6px 8px;font-size:12px;border-bottom:1px solid var(--brd);vertical-align:middle;overflow:hidden}
+.pt tr:last-child td{border-bottom:none}
+.pt tr:hover td{background:var(--hov)}
+/* Name is PRIMARY — larger, bold. Code is secondary — small, muted */
+.mn{font-weight:600;color:var(--txt);font-size:12.5px;line-height:1.3}
+.mc{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--txts);display:block;margin-top:1px;opacity:.7}
+.mv{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--txts)}
+.mt2{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--txt);font-weight:500}
+.cv{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--green);font-weight:500}
+.pt-acts{display:flex;gap:2px;opacity:0;transition:.15s}
+.pt tr:hover .pt-acts{opacity:1}
+.ib{border:1px solid;width:20px;height:20px;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:.15s;flex-shrink:0;background:none;font-family:inherit}
+.ibe{color:var(--blue);border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.1)}.ibe:hover{background:rgba(59,130,246,.25)}
+.ibd{color:var(--red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1)}.ibd:hover{background:rgba(239,68,68,.25)}
+.pt-empty{padding:14px;text-align:center;color:var(--txtm);font-size:11px}
+/* Drag-and-drop row reordering */
+.pt tr[draggable]{cursor:grab;}
+.pt tr[draggable].row-dragging{opacity:.35;background:var(--hov);}
+.pt tr.drag-above td{border-top:2px solid var(--blue);}
+.pt tr.drag-below td{border-bottom:2px solid var(--blue);}
+.drag-handle{display:inline-block;color:var(--txts);font-size:11px;cursor:grab;padding:0 4px;opacity:0;transition:opacity .15s;user-select:none;}
+.pt tr:hover .drag-handle{opacity:1;}
+.mono{font-family:'DM Mono',monospace}
+.pt-wrap{overflow-x:auto}
+.pt th{position:relative}
+.pt-rszr{position:absolute;right:-3px;top:15%;bottom:15%;width:5px;cursor:col-resize;z-index:2;border-radius:2px;background:rgba(139,154,176,.35);transition:background .12s}
+.pt-rszr:hover,.pt-rszr.dragging{background:rgba(59,130,246,.75);width:5px}
+.pt-col-btn{background:none;border:1px solid var(--brd);border-radius:4px;color:var(--txts);cursor:pointer;font-size:10px;padding:1px 5px;margin-left:4px;font-family:inherit;transition:.12s;vertical-align:middle}
+.pt-col-btn:hover{border-color:var(--blue);color:var(--blue)}
+#pt-col-picker{position:fixed;background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:6px 0;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:150px;display:none}
+#pt-col-picker.open{display:block}
+.ptcp-item{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:12.5px;user-select:none}
+.ptcp-item:hover{background:var(--hov)}
+.ptcp-item input{width:14px;height:14px;cursor:pointer;accent-color:var(--blue)}
+
+/* LKM TABLE */
+.lkm-table{width:100%;border-collapse:collapse}
+.lkm-table thead th{padding:4px 8px;text-align:left;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);background:var(--card);border-bottom:1px solid var(--brd);white-space:nowrap}
+.lkm-table tbody tr{border-bottom:1px solid var(--brd)}
+.lkm-table tbody tr:last-child{border-bottom:none}
+.lkm-table tbody tr:hover td{background:var(--hov)}
+.lkm-table td{padding:5px 8px;vertical-align:middle;font-size:11px}
+.lkm-empty{padding:16px;text-align:center;color:var(--txtm);font-size:11px}
+.lkm-footer{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--brd);background:var(--card)}
+.lkm-mass-btn{margin:8px 10px;padding:5px 10px;border-radius:5px;border:1px dashed rgba(139,92,246,.4);background:rgba(139,92,246,.06);color:var(--violet);font-size:10.5px;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:6px;width:calc(100% - 20px)}
+.lkm-mass-btn:hover{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.6)}
+.lkm-type-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.lkm-primer{background:rgba(245,158,11,.15);color:var(--amber)}.lkm-base{background:rgba(59,130,246,.15);color:var(--blue)}
+.lkm-top{background:rgba(16,185,129,.15);color:var(--green)}.lkm-clear{background:var(--hov);color:var(--txts)}.lkm-other{background:rgba(139,92,246,.15);color:var(--violet)}
+
+/* BOM GROUPS */
+.bom-grp-hdr{background:var(--card);cursor:pointer;user-select:none}
+.bom-grp-hdr:hover td{background:var(--hov)}
+.bom-grp-hdr td{padding:4px 8px;font-size:11px;font-weight:600;color:var(--txts);border-top:1px solid var(--brdl)}
+.bom-grp-ungrouped td{padding:3px 8px;font-size:9.5px;color:var(--txtm);font-weight:600;letter-spacing:.5px;text-transform:uppercase;border-top:1px solid var(--brd);background:var(--card)}
+
+/* RIGHT SIDEBAR */
+.sr{background:var(--panel);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sr-tabs{display:flex;border-bottom:1px solid var(--brd);flex-shrink:0}
+.sr-tab{flex:1;padding:7px 4px;font-size:9.5px;font-weight:600;text-align:center;color:var(--txtm);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;user-select:none}
+.sr-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.sr-tab:hover:not(.on){color:var(--txt)}
+.sr-body{flex:1;overflow-y:auto;padding:8px}
+.sr-body::-webkit-scrollbar{width:3px}
+.sr-body::-webkit-scrollbar-thumb{background:var(--brdl);border-radius:3px}
+.sr-block{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:8px 10px;margin-bottom:6px}
+.sr-block-title{font-size:9px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--txtm);margin-bottom:6px}
+.sr-row{display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--brd)}
+.sr-row:last-child{border-bottom:none}
+.sr-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sr-name{font-size:10.5px;color:var(--txts);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--txt)}
+.sr-rev{padding:6px 8px;border-bottom:1px solid var(--brd);cursor:pointer;transition:.15s;border-radius:4px}
+.sr-rev:hover{background:var(--hov)}
+.sr-rev-num{font-family:'DM Mono',monospace;font-size:10.5px;font-weight:500;color:var(--cyan)}
+.sr-rev-badge{font-size:8px;padding:1px 4px;border-radius:4px;margin-left:4px}
+.sr-rev-act{background:rgba(16,185,129,.12);color:var(--green)}
+.sr-rev-old{background:var(--hov);color:var(--txtm)}
+.sr-link{display:block;text-align:center;font-size:10px;color:var(--blue);cursor:pointer;padding:6px;text-decoration:none}
+.sr-link:hover{text-decoration:underline}
+.sr-empty{padding:20px;text-align:center;color:var(--txtm);font-size:11px}
+
+/* GENERIC CARDS (for other pages) */
+.card{background:var(--panel);border:1px solid var(--brd);border-radius:7px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--brd);background:var(--card)}
+.card-title{font-weight:600;font-size:13px}
+.card-body{padding:14px}
+.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}.mt-12{margin-top:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--txtm)}
+input,select,textarea{border:1px solid var(--brdl);border-radius:5px;padding:6px 10px;font-family:'Inter';font-size:12px;color:var(--txt);background:var(--card);outline:none;transition:border-color .12s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+.field-hint{font-size:10px;color:var(--txtm)}
+select option{background:var(--panel)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);background:var(--card);border-bottom:1px solid var(--brd);white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--brd);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--hov)}
+td{padding:7px 10px;vertical-align:middle;font-size:11.5px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:5px;border:none;cursor:pointer;font-family:'Inter';font-size:11.5px;font-weight:600;transition:all .12s;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-secondary{background:var(--card);color:var(--txts);border:1px solid var(--brd)}.btn-secondary:hover{border-color:var(--brdl);color:var(--txt)}
+.btn-danger{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3)}.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:4px 9px;font-size:11px}.btn-xs{padding:2px 7px;font-size:10px}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.badge::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0}
+.s-draft{background:var(--hov);color:var(--txts)}.s-approved{background:rgba(16,185,129,.12);color:var(--green)}
+.s-superseded{background:rgba(139,92,246,.12);color:var(--violet)}.s-awaiting{background:rgba(245,158,11,.12);color:var(--amber)}
+.s-cancelled{background:rgba(239,68,68,.1);color:var(--red)}.s-quotation{background:rgba(59,130,246,.12);color:var(--blue)}
+
+/* CHIP ALIASES for backward compat */
+.chip-w{font-family:'DM Mono',monospace;font-size:10px;background:rgba(59,130,246,.12);color:var(--blue);border-radius:5px;padding:1px 6px}
+.chip-c{font-family:'DM Mono',monospace;font-size:10px;background:rgba(16,185,129,.12);color:var(--green);border-radius:5px;padding:1px 6px}
+.chip-p{font-family:'DM Mono',monospace;font-size:10px;background:rgba(245,158,11,.12);color:var(--amber);border-radius:5px;padding:1px 6px}
+.chip-paint{font-family:'DM Mono',monospace;font-size:10px;background:rgba(139,92,246,.12);color:var(--violet);border-radius:5px;padding:1px 6px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--panel);border:1px solid var(--brdl);color:var(--txt);border-radius:7px;padding:10px 14px;font-size:12px;font-weight:500;z-index:2000;display:flex;align-items:center;gap:8px;transform:translateY(10px);opacity:0;transition:all .2s;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.1);color:var(--green)}
+.toast.error{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:var(--red)}
+.toast.warning{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.1);color:var(--amber)}
+
+/* DEBUG */
+.debug-box{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);line-height:1.7}
+.debug-box.hidden{display:none}
+
+/* DIFF */
+.diff-pos{color:var(--red)}.diff-neg{color:var(--green)}
+.diff-row{padding:5px 10px;border-bottom:1px solid var(--brd);font-size:11px}
+.diff-row.added{background:rgba(16,185,129,.06)}.diff-row.removed{background:rgba(239,68,68,.06)}.diff-row.changed{background:rgba(245,158,11,.06)}
+
+/* ALERTS */
+.warning-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-left:3px solid var(--amber);border-radius:4px;padding:7px 10px;font-size:11px;color:var(--amber);margin-bottom:7px}
+.info-box{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-left:3px solid var(--blue);border-radius:4px;padding:7px 10px;font-size:11px;color:var(--blue)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--panel);border:1px solid var(--brdl);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.modal-hdr{padding:14px 18px;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-weight:700;font-size:14px}
+.modal-body{padding:18px}
+.modal-ftr{padding:10px 18px;border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:8px}
+
+/* MTYPE TABS (modal) */
+.mtype-tabs{display:flex;gap:4px;margin-bottom:2px}
+.mtype-btn{flex:1;padding:6px;border:1px solid var(--brd);border-radius:5px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:var(--txts);background:var(--card);transition:all .12s;font-family:inherit}
+.mtype-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* CAT FILTER */
+.cat-filter{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.cat-btn{padding:2px 8px;border-radius:10px;border:1px solid var(--brd);background:var(--card);font-size:10px;font-weight:600;color:var(--txts);cursor:pointer;transition:all .1s;font-family:inherit}
+.cat-btn:hover{border-color:var(--blue);color:var(--blue)}
+.cat-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* MAT SEARCH in modal */
+.mat-search-wrap{position:relative}
+.mat-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--panel);border:1px solid var(--brdl);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:50;max-height:280px;overflow-y:auto;display:none}
+.mat-dropdown.open{display:block}
+.mat-cat-hdr{padding:4px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txtm);background:var(--card);border-bottom:1px solid var(--brd);border-top:1px solid var(--brd)}
+.mat-opt{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--brd);transition:background .1s}
+.mat-opt:last-child{border-bottom:none}.mat-opt:hover{background:var(--hov)}
+.mat-opt-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--cyan);font-weight:600}
+.mat-opt-name{font-size:11.5px;font-weight:600;margin:2px 0;color:var(--txt)}
+.mat-opt-meta{font-size:10px;color:var(--txts);display:flex;gap:8px;flex-wrap:wrap}
+
+/* QUICK BUTTONS (modal) */
+.quick-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.quick-btn{padding:3px 10px;border:1px solid var(--brd);border-radius:4px;background:var(--card);font-family:'DM Mono',monospace;font-size:11px;color:var(--txt);cursor:pointer;transition:all .12s}
+.quick-btn:hover{border-color:var(--blue);color:var(--blue)}
+.remnant-option{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);border-radius:5px;padding:7px 10px;cursor:pointer;transition:background .12s;font-size:11px;margin-bottom:5px}
+.remnant-option:hover{background:rgba(16,185,129,.14)}
+.remnant-title{font-weight:700;color:var(--green)}
+
+/* MISC */
+.text-muted{color:var(--txts)}.text-sm{font-size:11px}.text-xs{font-size:10px}.fw7{font-weight:700}
+.gap-8{display:flex;gap:8px;align-items:center}.gap-12{display:flex;gap:12px;align-items:center}
+.empty{text-align:center;padding:30px 16px;color:var(--txtm)}.empty .icon{font-size:28px;margin-bottom:8px}
+.sep{height:1px;background:var(--brd);margin:10px 0}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);font-size:11.5px}
+.summary-row:last-child{border-bottom:none}
+.summary-row.total{font-weight:700;font-size:13px;padding-top:8px}
+.summary-label{color:var(--txts)}
+
+/* LOGIN MODAL */
+.login-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9000;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--panel);border:1px solid var(--brdl);border-radius:12px;padding:32px;width:360px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.login-logo-i{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff}
+.login-logo-t{font-weight:700;font-size:16px}.login-logo-t span{color:var(--cyan)}
+.login-title{font-size:13px;color:var(--txts);margin-bottom:20px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--txtm);margin-bottom:5px}
+.login-field input{width:100%;background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:9px 12px;font-size:13px;font-family:'Inter';color:var(--txt);outline:none;transition:.15s}
+.login-field input:focus{border-color:var(--blue)}
+.login-err{color:var(--red);font-size:11.5px;margin-bottom:12px;min-height:16px}
+.login-btn{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter';transition:.15s}
+.login-btn:hover{background:#2563eb}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.ii{width:58px;border:1px solid var(--brd);border-radius:3px;background:var(--card);color:var(--txt);font-family:'DM Mono',monospace;font-size:11px;padding:2px 4px;text-align:right;outline:none;transition:border-color .12s}
+.ii:focus{border-color:var(--blue);background:var(--panel)}
+.ii:hover{border-color:var(--brdl)}
+.ii-sm{width:38px}
+.ii-sep{font-size:10px;color:var(--txts);margin:0 2px}
+.ii-unit{font-size:10px;color:var(--txts);margin-left:2px}
+</style>
+<style id="pt-col-style"></style>
+</head>
+<body>
+<!-- LOGIN MODAL -->
+<div class="login-modal" id="login-modal" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-i">M</div>
+      <div class="login-logo-t">Metal<span>Pro</span></div>
+    </div>
+    <div class="login-title">Войдите для продолжения работы</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="admin@company.ru" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+    </div>
+    <div class="login-field">
+      <label>Пароль</label>
+      <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="shell" id="app" style="display:none">
+
+  <!-- SIDEBAR — rendered by nav.js -->
+  <aside class="sb" id="erp-nav"></aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- === QUOTE PAGE === -->
+    <div class="page active" id="page-quote">
+      <div class="topbar">
+        <div class="bc">
+          <a href="orders.html" style="color:var(--txts);text-decoration:none">Заказы</a>
+          <span class="bc-sep">›</span>
+          <span id="bc-order">Новый КП</span>
+          <span class="bc-sep">›</span>
+          <span class="bcc">Расчёт</span>
+        </div>
+        <div class="topbar-right">
+          <button class="abtn" id="dbg-btn" onclick="toggleDebug()" title="Debug mode">🐛 Debug</button>
+        </div>
+      </div>
+      <div class="ws">
+        <!-- EDITOR -->
+        <div class="ed">
+          <!-- ORDER META -->
+          <div class="om">
+            <div class="omt">
+              <div class="om-num-wrap">
+                <input class="onum-in" id="order-num" placeholder="КП-2026-001" oninput="saveDraft()">
+                <select class="tg bl" id="order-status-tag" style="cursor:pointer;font-family:var(--ff);background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--blue);font-size:9.5px;padding:2px 4px;border-radius:6px;border:1px solid;outline:none" onchange="changeOrderStatus(this.value)" title="Изменить статус заказа">
+                  <option value="">— статус —</option>
+                </select>
+                <span class="tg gr" id="order-rev-tag" style="display:none"></span>
+              </div>
+              <div class="om-fields">
+                <div class="om-field" style="position:relative">
+                  <div class="om-flbl">Клиент / Юрлицо</div>
+                  <input class="om-fin" id="order-customer" placeholder="ООО Клиент" autocomplete="off" oninput="_simAcSearch(this.value);saveDraft()">
+                  <div id="sim-ac-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--brdl);border-radius:6px;z-index:300;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.4);"></div>
+                </div>
+                <div class="om-field">
+                  <div class="om-flbl">Объект</div>
+                  <input class="om-fin" id="order-title" placeholder="Описание объекта" oninput="saveDraft()">
+                </div>
+              </div>
+            </div>
+            <!-- TOTALS BAR -->
+            <div class="totals-bar">
+              <div class="tb2">
+                <div class="tbl">Общая масса</div>
+                <div class="tbv" id="tb-w">0.000 <span style="font-size:11px;color:var(--txtm)">т</span></div>
+                <div class="tbs" id="tb-w-sub">0 узлов · 0 деталей</div>
+                <div class="tbbar"><div class="tbf tfb" id="tb-w-bar" style="width:0%"></div></div>
+              </div>
+              <div class="tb2">
+                <div class="tbl">Стоимость</div>
+                <div class="tbv" style="color:var(--green)" id="tb-c">0 <span style="font-size:11px;color:var(--txtm)">₽</span></div>
+                <div class="tbs" id="tb-c-sub">—</div>
+                <div class="tbbar"><div class="tbf tfg" id="tb-c-bar" style="width:0%"></div></div>
+              </div>
+              <div class="tb2">
+                <div class="tbl">Площадь покраски</div>
+                <div class="tbv" style="color:var(--amber)" id="tb-p">0.0 <span style="font-size:11px;color:var(--txtm)">м²</span></div>
+                <div class="tbs" id="tb-p-sub">ЛКМ не назначен</div>
+                <div class="tbbar"><div class="tbf tfa" id="tb-p-bar" style="width:0%"></div></div>
+              </div>
+              <div class="tb2">
+                <div class="tbl">Метизы</div>
+                <div class="tbv" style="color:var(--violet)" id="tb-f">0.0 <span style="font-size:11px;color:var(--txtm)">кг</span></div>
+                <div class="tbs" id="tb-f-sub">—</div>
+                <div class="tbbar"><div class="tbf tfv" id="tb-f-bar" style="width:0%"></div></div>
+              </div>
+            </div>
+            <!-- ACTION BAR -->
+            <div class="ab">
+              <button class="abtn pr" onclick="commitRevision()">✓ Зафиксировать ревизию</button>
+              <div class="absep"></div>
+              <button class="abtn" onclick="resetQuote()">↺ Сбросить</button>
+              <div class="absep"></div>
+              <button class="abtn" onclick="go('files')" title="Документы и чертежи по заказу">📎 Документы <span id="files-count-badge" style="display:none;background:var(--blue);color:#fff;border-radius:10px;padding:0 5px;font-size:9px;margin-left:2px"></span></button>
+              <div class="absep"></div>
+              <input class="ai" id="new-asm-name" placeholder="Название узла (Ферма Ф-1...)" onkeydown="if(event.key==='Enter')addAsm()">
+              <input class="ai-qty" id="new-asm-qty" type="number" value="1" min="1" title="Кол-во">
+              <span style="font-size:10px;color:var(--txtm)">шт</span>
+              <button class="aadd" onclick="addAsm()">+ Узел</button>
+            </div>
+          </div>
+          <!-- ASSEMBLIES -->
+          <!-- AI BANNER -->
+          <div id="ai-banner" class="ai-banner" style="display:none">
+            <span>✦</span>
+            <div>
+              <div class="ai-banner-title">AI заполнил расчёт из спецификации PDF</div>
+              <div class="ai-banner-sub">Проверьте материалы — подтвердите или замените</div>
+            </div>
+            <div class="ai-stats">
+              <span class="as as-ok" id="ai-stat-ok" style="display:none"></span>
+              <span class="as as-warn" id="ai-stat-warn" style="display:none"></span>
+              <span class="as as-err" id="ai-stat-err" style="display:none"></span>
+            </div>
+          </div>
+          <div id="asms-container"></div>
+          <!-- DEBUG SUMMARY -->
+          <div class="debug-box hidden" id="dbg-sum" style="margin-top:4px"><div id="dbg-sum-lines"></div></div>
+        </div>
+
+        <!-- RIGHT SIDEBAR -->
+        <div class="sr">
+          <div class="sr-tabs">
+            <div class="sr-tab on" onclick="setRpTab('nodes')">По узлам</div>
+            <div class="sr-tab" onclick="setRpTab('profile')">Сортамент</div>
+            <div class="sr-tab" onclick="setRpTab('revs')">Ревизии</div>
+            <div class="sr-tab" onclick="setRpTab('files')">📎 Файлы</div>
+          </div>
+          <div class="sr-body" id="sr-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === REVISIONS PAGE === -->
+    <div class="page" id="page-revisions">
+      <div class="topbar">
+        <div class="bc"><span class="bcc">Ревизии КП</span></div>
+        <div class="topbar-right">
+          <button class="btn btn-secondary btn-sm" onclick="go('compare')">Сравнить →</button>
+        </div>
+      </div>
+      <div class="page-content"><div id="revs-list"></div></div>
+    </div>
+
+    <!-- === COMPARE PAGE === -->
+    <div class="page" id="page-compare">
+      <div class="topbar"><div class="bc"><span class="bcc">Сравнение ревизий</span></div></div>
+      <div class="page-content">
+        <div class="card mb-16">
+          <div class="card-header"><div class="card-title">Выберите ревизии</div></div>
+          <div class="card-body">
+            <div class="grid2">
+              <div class="field"><label>Ревизия A (базовая)</label><select id="cmp-a"></select></div>
+              <div class="field"><label>Ревизия B (новая)</label><select id="cmp-b"></select></div>
+            </div>
+            <button class="btn btn-primary mt-12" onclick="runCmp()">Сравнить</button>
+          </div>
+        </div>
+        <div id="cmp-result"></div>
+      </div>
+    </div>
+
+    <!-- === MATERIALS PAGE === -->
+    <div class="page" id="page-materials">
+      <div class="topbar"><div class="bc"><span class="bcc">Справочник материалов</span></div></div>
+      <div class="page-content">
+        <div class="card">
+          <div class="card-header">
+            <input placeholder="🔍 Поиск..." style="width:260px;font-size:12px" oninput="renderMats(this.value)">
+          </div>
+          <table>
+            <thead><tr><th>Код</th><th>Наименование</th><th>Категория</th><th>кг/м</th><th>кг/м²</th><th>м²/м покраска</th><th>ГОСТ</th></tr></thead>
+            <tbody id="mat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- === PRICES PAGE === -->
+    <div class="page" id="page-prices">
+      <div class="topbar"><div class="bc"><span class="bcc">Цены</span></div></div>
+      <div class="page-content">
+        <div class="info-box mb-16">При создании ревизии берётся последняя актуальная цена на дату.</div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена, руб/т</th><th>С</th><th>По</th><th>Статус</th></tr></thead>
+            <tbody id="prices-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- === FILES PAGE === -->
+    <div class="page" id="page-files">
+      <div class="topbar">
+        <div class="bc">
+          <a href="orders.html" style="color:var(--txts);text-decoration:none">Заказы</a>
+          <span class="bc-sep">›</span>
+          <span id="bc-order-files">Заказ</span>
+          <span class="bc-sep">›</span>
+          <span class="bcc">Документы</span>
+        </div>
+        <div class="topbar-right">
+          <button class="abtn pr" onclick="triggerFileUpload()">+ Загрузить файл</button>
+          <button class="abtn" onclick="go('quote')" style="margin-left:4px">← Назад к КП</button>
+        </div>
+      </div>
+      <div class="page-content">
+        <input type="file" id="file-input" style="display:none" onchange="uploadFile(this)" accept=".pdf,.dwg,.dxf,.step,.stp,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg">
+
+        <div id="files-upload-hint" class="info-box mb-16" style="display:none">
+          Загружайте чертежи (DXF, DWG, STEP), спецификации (PDF, XLSX), фотографии и другие документы по заказу.
+        </div>
+
+        <div id="files-uploading" style="display:none;padding:12px;color:var(--txts);font-size:12px">
+          ⏳ Загрузка файла…
+        </div>
+
+        <div id="files-list-wrap">
+          <div id="files-empty" style="display:none;padding:32px;text-align:center;color:var(--txtm);font-size:13px">
+            Документы не прикреплены.<br>Нажмите «+ Загрузить файл» чтобы добавить.
+          </div>
+          <div class="card" id="files-table-wrap" style="display:none">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:36px"></th>
+                  <th>Название</th>
+                  <th>Тип</th>
+                  <th>Размер</th>
+                  <th>Дата</th>
+                  <th style="width:80px"></th>
+                </tr>
+              </thead>
+              <tbody id="files-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: ADD/EDIT PART -->
+<div class="modal-bg" id="modal-ov" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" style="width:560px;max-height:92vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-title">Добавить деталь</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="display:block;margin-bottom:5px">Тип измерения</label>
+        <div class="mtype-tabs">
+          <div class="mtype-btn active" id="mt-linear" onclick="setMType('linear')">📏 Погонаж</div>
+          <div class="mtype-btn" id="mt-area" onclick="setMType('area')">⬜ Листовой прокат</div>
+          <div class="mtype-btn" id="mt-piece" onclick="setMType('piece')">🔩 Штучно (крепёж)</div>
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <label style="display:block;margin-bottom:5px">Категория</label>
+        <div class="cat-filter" id="cat-filter"></div>
+      </div>
+      <div class="field mb-16">
+        <label>Профиль материала</label>
+        <div class="mat-search-wrap">
+          <input id="mat-search" placeholder="Введите код или название..." autocomplete="off" oninput="searchMat(this.value)" onfocus="searchMat(this.value)">
+          <div class="mat-dropdown" id="mat-dd"></div>
+        </div>
+        <div id="mat-sel" style="display:none;margin-top:5px;padding:6px 9px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:5px;font-size:11px"></div>
+      </div>
+      <div id="rem-hint" style="display:none;margin-bottom:10px"></div>
+      <div id="dims-linear">
+        <div id="stdlen-wrap" style="display:none;margin-bottom:8px">
+          <label style="display:block;margin-bottom:5px">Стандартные длины</label>
+          <div class="quick-btns" id="stdlen-btns"></div>
+        </div>
+        <div class="grid2 mb-16">
+          <div class="field"><label>Длина детали, мм</label><input type="number" id="p-len" step="1" placeholder="2340" min="1" oninput="calcPart()"><span class="field-hint" id="hint-std"></span></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty" value="1" min="1" oninput="calcPart()"></div>
+        </div>
+      </div>
+      <div id="dims-area" style="display:none">
+        <div id="sheet-wrap" style="display:none;margin-bottom:8px">
+          <label style="display:block;margin-bottom:5px">Форматы листа</label>
+          <div class="quick-btns" id="sheet-btns"></div>
+        </div>
+        <div class="grid3 mb-16">
+          <div class="field"><label>Ширина, мм</label><input type="number" id="p-w" step="1" placeholder="250" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Высота, мм</label><input type="number" id="p-h" step="1" placeholder="300" min="1" oninput="calcPart()"></div>
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-a" value="1" min="1" oninput="calcPart()"></div>
+        </div>
+      </div>
+      <div id="dims-piece" style="display:none">
+        <div class="grid2 mb-16">
+          <div class="field"><label>Количество, шт</label><input type="number" id="p-qty-p" value="1" min="1" oninput="calcPart()"></div>
+          <div class="field">
+            <label>Масса 1 шт, кг</label>
+            <div id="pw-default" style="display:none;padding:6px 9px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:5px;font-size:12px;color:var(--green);font-family:'DM Mono',monospace"></div>
+            <div id="pw-override-wrap" style="display:none;align-items:center;gap:6px;margin-top:4px">
+              <input type="checkbox" id="pw-override" onchange="onPwOverride()" style="width:13px;height:13px;padding:0">
+              <span style="font-size:11px;font-weight:500;color:var(--txts);cursor:pointer" onclick="document.getElementById('pw-override').click()">Переопределить вручную</span>
+            </div>
+            <input type="number" id="p-pw" step="0.001" placeholder="0.200" min="0" oninput="calcPart()" style="margin-top:4px">
+          </div>
+        </div>
+      </div>
+      <div class="field mb-16"><label>Название (необязательно)</label><input id="p-name" placeholder="Косынка К-1"></div>
+      <div id="part-res" style="display:none">
+        <div class="debug-box hidden" id="part-dbg"></div>
+        <div style="margin-top:8px;padding:10px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:6px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Масса</div><div class="mono fw7" style="font-size:16px;color:var(--green)" id="res-w">—</div></div>
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Покраска</div><div class="mono fw7" style="font-size:16px;color:var(--amber)" id="res-p">—</div></div>
+            <div><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Стоимость</div><div class="mono fw7" style="font-size:16px;color:var(--blue)" id="res-c">—</div></div>
+          </div>
+          <div style="margin-top:5px;font-size:10px;color:var(--txtm);text-align:center" id="res-note"></div>
+        </div>
+        <div id="no-price-w" class="warning-box mt-12" style="display:none">⚠️ Нет актуальной цены — добавьте в разделе «Цены».</div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <label id="ai-remember-wrap" style="display:none;font-size:10.5px;color:var(--txts);align-items:center;gap:6px;margin-right:auto">
+        <input type="checkbox" id="ai-remember" checked style="width:13px;height:13px;padding:0">
+        запомнить замену (AI обучится)
+      </label>
+      <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="btn-confirm" onclick="confirmPart()">Добавить деталь</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: LKM LAYER -->
+<div class="modal-bg" id="lkm-modal-bg" onclick="if(event.target===this)closeLKMModal()">
+  <div class="modal-box" style="width:400px;max-height:90vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <div class="modal-title" id="lkm-modal-title">Добавить слой ЛКМ</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeLKMModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:11px">
+      <div class="field"><label>Материал *</label><select id="lkm-mat-sel" style="width:100%"><option value="">— выберите —</option></select></div>
+      <div class="grid2">
+        <div class="field"><label>Номер слоя</label><input id="lkm-layer-num" type="number" min="1" value="1"></div>
+        <div class="field" style="justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:11px;font-weight:600;color:var(--txt)">
+            <input id="lkm-auto" type="checkbox" checked onchange="toggleLKMManual()" style="width:13px;height:13px;padding:0">
+            Авто-площадь
+          </label>
+          <span class="field-hint">Брать из деталей узла</span>
+        </div>
+      </div>
+      <div id="lkm-manual-wrap" style="display:none">
+        <div class="field"><label>Площадь (м²)</label><input id="lkm-manual-area" type="number" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>ДПП мкм (override)</label><input id="lkm-dft" type="number" min="1" placeholder="из каталога"><span class="field-hint">Пусто = эталон</span></div>
+        <div class="field"><label>Разбавление % (override)</label><input id="lkm-dilution" type="number" step="0.1" min="0" placeholder="из каталога"></div>
+      </div>
+      <div class="field"><label>Примечание</label><input id="lkm-notes" type="text" placeholder="необязательно"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-secondary" onclick="closeLKMModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveLKMLayer()">Сохранить слой</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TEMPLATE PICKER -->
+<div class="modal-bg" id="tmpl-picker-bg">
+  <div class="modal-box" style="width:520px;max-height:88vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <div class="modal-title">📦 Вставить шаблон</div>
+      <button class="btn btn-secondary btn-xs" onclick="closeTmplPicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field mb-16">
+        <label>Шаблон изделия</label>
+        <select id="tp-sel" onchange="previewTmpl(this.value)" style="width:100%"><option value="">— загрузка... —</option></select>
+      </div>
+      <div class="field mb-16">
+        <label>Множитель (кол-во изделий)</label>
+        <input type="number" id="tp-mult" value="1" min="1" style="width:110px">
+        <span class="field-hint">qty детали = norm × node.qty × multiplier</span>
+      </div>
+      <div id="tp-preview" style="background:var(--card);border:1px solid var(--brd);border-radius:5px;padding:10px;font-size:11px;min-height:60px;max-height:200px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-secondary" onclick="closeTmplPicker()">Отмена</button>
+      <button class="btn btn-primary" id="tp-apply-btn" onclick="applyTmplPicker()">📦 Вставить детали</button>
+    </div>
+  </div>
+</div>
+<script src="erp-store.js"></script>
+<script>
+const API = '';
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+
+let _loggedUser = null;
+
+function showLoginModal() {
+  document.getElementById('login-modal').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-err').textContent = '';
+}
+function hideLoginModal() {
+  document.getElementById('login-modal').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('login-btn');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Введите email и пароль'; return; }
+  btn.disabled = true; btn.textContent = 'Вход...';
+  try {
+    const r = await _origFetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    localStorage.setItem('erp_token', data.token);
+    _loggedUser = data.user;
+    hideLoginModal();
+    _setUserInfo(data.user);
+    await initApp();
+  } catch(e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Войти';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('erp_token');
+  _loggedUser = null;
+  location.replace('login.html');
+}
+
+function _setUserInfo(u) { /* user display handled by nav.js */ }
+
+// ─── FETCH INTERCEPTOR ────────────────────────────────────────────────────────
+// Inject Bearer token on all API calls; redirect to login on 401
+
+const _origFetch = window.fetch.bind(window);
+window.fetch = async function(url, opts) {
+  opts = opts ? { ...opts } : {};
+  const surl = String(url);
+  const isApiCall = surl.startsWith('/api/') || surl.startsWith(location.origin + '/api/');
+  if (isApiCall) {
+    const token = localStorage.getItem('erp_token');
+    if (token) {
+      opts.headers = { ...opts.headers, 'Authorization': `Bearer ${token}` };
+    }
+  }
+  const r = await _origFetch(url, opts);
+  if (r.status === 401 && isApiCall) {
+    localStorage.removeItem('erp_token');
+    location.replace('login.html');
+    throw new Error('Требуется авторизация — войдите снова');
+  }
+  return r;
+};
+
+// ─── THEME — handled by nav.js ────────────────────────────────────────────────
+
+// ─── APP INIT ─────────────────────────────────────────────────────────────────
+
+async function initApp() {
+  if (typeof ERP !== 'undefined') ERP.init('simulator');
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('orderId');
+    if (orderId && typeof ERPStore !== 'undefined') {
+      _currentOrderId = orderId;
+      const order = await ERPStore.fetchOrder(orderId);
+      document.getElementById('order-num').value = order.orderNumber || '';
+      document.getElementById('order-customer').value = order.customerName || '';
+      document.getElementById('order-title').value = order.title || '';
+      document.getElementById('bc-order').textContent = order.orderNumber || orderId;
+      _fillStatusDropdown(order.status);
+      const revTag = document.getElementById('order-rev-tag');
+      let draftRestored = false;
+      try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) { const d = JSON.parse(raw); if (d.orderId === orderId && d.asms?.length) { asms = d.asms; draftRestored = true; toast('Черновик восстановлен', 'success'); } }
+      } catch(_) {}
+      if (!draftRestored && order.assemblies?.length) {
+        asms = _apiAsmsToSim(order.assemblies);
+        _asmCoatings = {};
+        for (const a of order.assemblies) {
+          if (a.coatings?.length) {
+            _asmCoatings[a.id] = a.coatings.map(c => ({
+              id:                c.id,
+              coatingMaterialId: c.coatingMaterialId,
+              layerNumber:       c.layerNumber,
+              autoAreaLink:      c.autoAreaLink,
+              manualAreaM2:      c.manualAreaM2 != null ? Number(c.manualAreaM2) : null,
+              selectedDftMkm:    c.selectedDftMkm ?? null,
+              dilutionPercent:   c.dilutionPercent != null ? Number(c.dilutionPercent) : null,
+              lossFactorPercent: c.lossFactorPercent != null ? Number(c.lossFactorPercent) : null,
+              notes:             c.notes ?? null,
+            }));
+          }
+        }
+      }
+      const apiRevs = await ERPStore.loadRevisions(orderId);
+      revs = apiRevs.sort((a, b) => a.revisionNumber - b.revisionNumber).map(r => _apiRevToSim(r, order.orderNumber, order.customerName));
+      const revCountEl = document.getElementById('rev-count'); if (revCountEl) revCountEl.textContent = revs.length;
+      if (revs.length) { revTag.style.display = ''; revTag.textContent = `Rev ${revs.length}`; }
+      updateAiBanner();
+    } else {
+      loadDraft();
+    }
+  } catch(e) { console.warn('initApp error', e); loadDraft(); }
+
+  refresh();
+  loadPtCols();
+  await loadMats();
+  try { if (typeof ERPStore !== 'undefined') { COATINGS_CATALOG = await ERPStore.listCoatingMaterials(); } } catch(e) { console.warn('coatings load failed', e); }
+
+  window.addEventListener('focus', async () => {
+    const flag = localStorage.getItem('materials_changed') || '0';
+    if (flag !== _matsChangedAt) { _matsChangedAt = flag; await loadMats(); }
+  });
+}
+
+// Boot: check token, then init or show login
+(async function boot() {
+  const token = localStorage.getItem('erp_token');
+  if (!token) { location.replace('login.html'); return; }
+  // Try to get user info via /api/auth/me
+  try {
+    const r = await _origFetch(`${API}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!r.ok) throw new Error('invalid');
+    _loggedUser = await r.json();
+    _setUserInfo(_loggedUser);
+    hideLoginModal();
+    await initApp();
+  } catch(e) {
+    location.replace('login.html');
+  }
+})();
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+
+let CATS = [], _catSlugMap = {};
+let MATS = [], PRICES = [], matsLoaded = false;
+let _archivedMats = {};
+const PT_COL_DEFS = [
+  { id:'mat',    label:'Материал',  w:200, minW:100, canHide:false },
+  { id:'detail', label:'Деталь',    w:110, minW:60,  canHide:true  },
+  { id:'type',   label:'Тип',       w:36,  minW:28,  canHide:true  },
+  { id:'dims',   label:'Размеры',   w:175, minW:100, canHide:false },
+  { id:'qty',    label:'Кол.',      w:82,  minW:50,  canHide:false },
+  { id:'kgpu',   label:'кг/шт',     w:70,  minW:46,  canHide:true  },
+  { id:'kgnode', label:'кг×узел',   w:88,  minW:60,  canHide:true  },
+  { id:'price',  label:'₽/т',       w:76,  minW:46,  canHide:true  },
+  { id:'sum',    label:'Сумма',     w:90,  minW:60,  canHide:false },
+];
+let _ptColW = PT_COL_DEFS.map(c => c.w);
+let _ptHidden = {};
+let _ptRsz = null;
+
+function applyPtCols() {
+  let total = 0;
+  PT_COL_DEFS.forEach(function(col, i) { if (!_ptHidden[col.id]) total += _ptColW[i]; });
+  let css = '';
+  PT_COL_DEFS.forEach(function(col, i) {
+    const n = i + 1;
+    if (_ptHidden[col.id]) {
+      css += '.pt th:nth-child('+n+'),.pt td:nth-child('+n+'){display:none;padding:0;border:0}';
+    } else {
+      css += '.pt th:nth-child('+n+'){width:'+(_ptColW[i]/total*100).toFixed(2)+'%}';
+    }
+  });
+  const s = document.getElementById('pt-col-style');
+  if (s) s.textContent = css;
+}
+
+function savePtCols() {
+  localStorage.setItem('erp_pt_cols', JSON.stringify({ w: _ptColW, h: _ptHidden }));
+}
+
+function loadPtCols() {
+  try {
+    const d = JSON.parse(localStorage.getItem('erp_pt_cols') || '{}');
+    if (Array.isArray(d.w) && d.w.length === PT_COL_DEFS.length) _ptColW = d.w;
+    if (d.h && typeof d.h === 'object') _ptHidden = d.h;
+  } catch(e) {}
+  applyPtCols();
+}
+
+function ptRszStart(e, idx) {
+  e.preventDefault(); e.stopPropagation();
+  _ptRsz = { idx, startX: e.clientX, startW: _ptColW[idx] };
+  e.currentTarget.classList.add('dragging');
+}
+
+document.addEventListener('mousemove', function(e) {
+  if (!_ptRsz) return;
+  const delta = e.clientX - _ptRsz.startX;
+  _ptColW[_ptRsz.idx] = Math.max(PT_COL_DEFS[_ptRsz.idx].minW, _ptRsz.startW + delta);
+  applyPtCols();
+});
+
+document.addEventListener('mouseup', function() {
+  if (!_ptRsz) return;
+  document.querySelectorAll('.pt-rszr.dragging').forEach(function(el){ el.classList.remove('dragging'); });
+  savePtCols();
+  _ptRsz = null;
+});
+
+function openPtColPicker(e) {
+  e.stopPropagation();
+  const picker = document.getElementById('pt-col-picker');
+  const r = e.currentTarget.getBoundingClientRect();
+  picker.style.top  = (r.bottom + 4) + 'px';
+  picker.style.left = Math.min(r.left, window.innerWidth - 180) + 'px';
+  picker.innerHTML = PT_COL_DEFS.filter(function(c){ return c.canHide; }).map(function(c) {
+    return '<label class="ptcp-item"><input type="checkbox"' + (_ptHidden[c.id] ? '' : ' checked') +
+      ' onchange="togglePtCol(\'' + c.id + '\',this.checked)">' + c.label + '</label>';
+  }).join('');
+  picker.classList.toggle('open');
+}
+
+function togglePtCol(colId, visible) {
+  if (visible) delete _ptHidden[colId]; else _ptHidden[colId] = true;
+  applyPtCols(); savePtCols();
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#pt-col-picker') && !e.target.closest('.pt-col-btn')) {
+    const p = document.getElementById('pt-col-picker'); if (p) p.classList.remove('open');
+  }
+});
+let _matsChangedAt = localStorage.getItem('materials_changed') || '0';
+const REMS = [];
+let dbg = false, asms = [], revs = [], nA = 10, nP = 100;
+let curA = null, curEP = null, curMT = 'linear', curC = 'all', selM = null;
+let _currentOrderId = null;
+const SIM_STATUS_LABELS = {DRAFT:'Новый запрос',QUOTATION:'На рассмотрении',AWAITING_APPROVAL:'Расчёт цены',APPROVED:'КП отправлено',PRODUCTION:'В производстве',COMPLETED:'Готово',DELIVERED:'Сдан',CANCELLED:'Отменён'};
+const SIM_ALLOWED_NEXT  = {DRAFT:['QUOTATION','CANCELLED'],QUOTATION:['AWAITING_APPROVAL','DRAFT','CANCELLED'],AWAITING_APPROVAL:['APPROVED','QUOTATION','CANCELLED'],APPROVED:['PRODUCTION','QUOTATION','CANCELLED'],PRODUCTION:['COMPLETED'],COMPLETED:['DELIVERED'],DELIVERED:[],CANCELLED:[]};
+function _fillStatusDropdown(status) {
+  const sel = document.getElementById('order-status-tag');
+  if (!sel) return;
+  const next = SIM_ALLOWED_NEXT[status] || [];
+  sel.innerHTML = '<option value="'+status+'" selected>'+(SIM_STATUS_LABELS[status]||status)+'</option>' +
+    next.map(s=>'<option value="'+s+'">→ '+(SIM_STATUS_LABELS[s]||s)+'</option>').join('');
+}
+async function changeOrderStatus(newStatus) {
+  if (!_currentOrderId || !newStatus) return;
+  try {
+    const r = await fetch('/api/orders/'+_currentOrderId+'/status', {
+      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('erp_token')||'')},
+      body: JSON.stringify({status:newStatus})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error||'Ошибка');
+    _fillStatusDropdown(newStatus);
+    toast('Статус: '+(SIM_STATUS_LABELS[newStatus]||newStatus),'success');
+  } catch(e) { toast(e.message,'error'); }
+}
+let COATINGS_CATALOG = [];
+let _asmCoatings = {};       // localAsmId → [{id,coatingMaterialId,...}]
+let _asmSections = {};       // localAsmId → {mat:bool, fas:bool, lkm:bool}
+let _curPartCategory = 'MATERIAL';
+let _lkmCurAsm = null, _lkmCurId = null;
+let _rpTab = 'nodes';        // 'nodes' | 'profile' | 'revs' | 'files'
+let _rpFiles = [];
+let _simAcTimer = null;
+let _simCustomerId = null;
+function _simAcSearch(q) {
+  clearTimeout(_simAcTimer);
+  const dd = document.getElementById('sim-ac-dd');
+  if (!dd || !q || q.length < 1) { if(dd) dd.style.display='none'; return; }
+  _simAcTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/customers?search='+encodeURIComponent(q),{headers:{Authorization:'Bearer '+(localStorage.getItem('erp_token')||'')}});
+      const list = await r.json();
+      if (!Array.isArray(list)||!list.length){dd.style.display='none';return;}
+      dd.innerHTML = list.slice(0,6).map(c=>`<div style="padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600" onmousedown="event.preventDefault();_simAcPick('${c.id}','${(c.name||'').replace(/'/g,'\\\'')}')">${c.name}</div>`).join('');
+      dd.style.display='block';
+    } catch(_){dd.style.display='none';}
+  }, 200);
+}
+function _simAcPick(id, name) {
+  _simCustomerId = id;
+  const inp = document.getElementById('order-customer');
+  if(inp) inp.value = name;
+  const dd = document.getElementById('sim-ac-dd');
+  if(dd) dd.style.display='none';
+  // Link customer to order if order is already saved
+  if (_currentOrderId) {
+    fetch('/api/orders/'+_currentOrderId,{method:'PATCH',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('erp_token')||'')},body:JSON.stringify({customerId:id,customerName:name})}).catch(()=>{});
+  }
+  saveDraft();
+}
+document.addEventListener('click', function(e){
+  const dd=document.getElementById('sim-ac-dd');
+  const inp=document.getElementById('order-customer');
+  if(dd&&!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+});
+const DRAFT_KEY = 'erp_draft';
+let _draftTimer = null;
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+
+function r4(v) { return Math.round(v * 10000) / 10000; }
+function fm(n) { return Number(n).toLocaleString('ru-RU'); }
+function f3(n) { return Number(n).toFixed(3); }
+
+let _tt;
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = (type === 'success' ? '✓ ' : type === 'error' ? '✗ ' : '⚠ ') + msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── DRAFT ────────────────────────────────────────────────────────────────────
+
+function saveDraft() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(() => {
+    try {
+      const d = { orderId: _currentOrderId, asms, coatings: _asmCoatings, num: document.getElementById('order-num').value, customer: document.getElementById('order-customer').value, title: document.getElementById('order-title').value };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    } catch(e) { console.warn('saveDraft', e); }
+  }, 1000);
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    const urlOrderId = new URLSearchParams(window.location.search).get('orderId');
+    if (d.orderId && d.orderId !== urlOrderId) return;
+    if (d.asms?.length) { asms = d.asms; const ids = asms.map(x => parseInt(x.id.replace('a', ''))).filter(Boolean); nA = Math.max(10, ...ids) + 1; const pids = asms.flatMap(x => x.parts.map(p => parseInt(p.id.replace('pt', '')))).filter(Boolean); nP = Math.max(100, ...pids) + 1; }
+    if (d.coatings) { _asmCoatings = d.coatings; }
+    if (d.num) document.getElementById('order-num').value = d.num;
+    if (d.customer) document.getElementById('order-customer').value = d.customer;
+    if (d.title) document.getElementById('order-title').value = d.title;
+  } catch(e) { console.warn('loadDraft', e); }
+}
+
+// ─── MATERIALS LOAD ───────────────────────────────────────────────────────────
+
+function flatCats(cats, depth = 0) {
+  const result = [];
+  for (const c of cats) {
+    _catSlugMap[c.id] = c.slug;
+    result.push({ id: c.slug, label: '  '.repeat(depth) + c.name });
+    if (c.children?.length) result.push(...flatCats(c.children, depth + 1));
+  }
+  return result;
+}
+
+async function loadMats() {
+  try {
+    showLoader(true);
+    const [catsData, matsData] = await Promise.all([
+      fetch(`${API}/api/material-categories`).then(r => r.json()),
+      fetch(`${API}/api/materials`).then(r => r.json()),
+    ]);
+    _catSlugMap = {};
+    CATS = [{ id: 'all', label: 'Все' }, ...flatCats(catsData), { id: 'uncategorized', label: 'Без категории' }];
+    MATS = matsData.map(m => {
+      const geo = m.geometry || {};
+      const prof = m.procurementProfiles || [];
+      const cat = m.categoryId ? (_catSlugMap[m.categoryId] || 'uncategorized') : 'uncategorized';
+      const kgm = geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null;
+      const kgm2 = geo.weightPerSquareMeter ? parseFloat(geo.weightPerSquareMeter) : null;
+      const pm = geo.paintSurfacePerMeter ? parseFloat(geo.paintSurfacePerMeter) : null;
+      const stdLen = prof[0]?.standardLength ? [parseFloat(prof[0].standardLength) * 1000] : null;
+      return { id: m.id, cat, code: m.code, name: m.name, kgm, kgm2, pm, sl: stdLen, sf: null, gost: m.standard || '', steelGrade: m.steelGrade || null, mtype: geo.measurementType || 'LINEAR', unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null, domain: m.materialDomain || 'STRUCTURAL' };
+    });
+    PRICES = [];
+    for (const m of matsData) {
+      const prof = m.procurementProfiles || [];
+      const price = prof[0]?.prices?.[0];
+      if (price) PRICES.push({ mid: m.id, sup: prof[0]?.supplierName || '', price: parseFloat(price.pricePerTon), ppp: price.pricePerPiece != null ? parseFloat(price.pricePerPiece) : null, from: price.validFrom?.slice(0, 10) || '2026-01-01', to: price.validTo?.slice(0, 10) || null });
+    }
+    matsLoaded = true;
+    showLoader(false);
+    refresh();
+    toast(`Загружено ${MATS.length} материалов`, 'success');
+  } catch(e) {
+    showLoader(false);
+    toast('Ошибка загрузки материалов: ' + e.message, 'error');
+  }
+}
+
+function showLoader(show) {
+  let el = document.getElementById('loader-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loader-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(13,15,18,.85);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:Inter,sans-serif';
+    el.innerHTML = '<div style="width:36px;height:36px;border:2px solid #252d3a;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#8b9ab0;font-size:12px">Загрузка материалов...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// ─── PRICE LOOKUP ─────────────────────────────────────────────────────────────
+
+function gP(mid) {
+  const t = new Date().toISOString().slice(0, 10);
+  return PRICES.filter(p => p.mid === mid && p.from <= t && (!p.to || p.to >= t)).sort((a, b) => b.from.localeCompare(a.from))[0] || null;
+}
+
+// ─── CALC CORE (PRESERVED) ────────────────────────────────────────────────────
+
+function getPw() {
+  if (curMT !== 'piece') return 0;
+  const defEl = document.getElementById('pw-default');
+  const cb = document.getElementById('pw-override');
+  if (defEl.style.display !== 'none' && !cb.checked) return selM?.unitKg ?? 0;
+  return parseFloat(document.getElementById('p-pw').value) || 0;
+}
+function updatePwField() {
+  const defEl = document.getElementById('pw-default');
+  const wrap = document.getElementById('pw-override-wrap');
+  const cb = document.getElementById('pw-override');
+  const inp = document.getElementById('p-pw');
+  if (curMT !== 'piece' || !selM || selM.unitKg == null) { defEl.style.display = 'none'; wrap.style.display = 'none'; inp.style.display = ''; inp.disabled = false; return; }
+  defEl.style.display = 'block'; defEl.textContent = selM.unitKg + ' кг/шт (из справочника)';
+  wrap.style.display = 'flex';
+  if (cb.checked) { inp.style.display = ''; inp.disabled = false; } else { inp.style.display = 'none'; inp.disabled = true; inp.value = ''; }
+}
+function onPwOverride() { updatePwField(); calcPart(); }
+
+function cPW(part, mat) {
+  if (!mat) return { wpu: 0, tot: 0, pm2: 0, lmm: 0, dbg: [] };
+  const d = [];
+  if (part.mtype === 'linear') {
+    const mm = part.len || 0, m = mm / 1000, kgm = mat.kgm || 0, q = part.qty || 1;
+    const wpu = r4(m * kgm), tot = r4(wpu * q), lmm = mm * q;
+    const pm2 = mat.pm ? r4(m * mat.pm * q) : 0;
+    d.push(`${fm(mm)} мм ÷ 1000 = ${m.toFixed(4)} м`);
+    d.push(`${m.toFixed(4)} м × ${kgm} кг/м = ${wpu} кг/шт`);
+    d.push(`${wpu} × ${q} шт = ${tot} кг`);
+    if (mat.pm) d.push(`Покраска: ${m.toFixed(4)} м × ${mat.pm} м²/м × ${q} = ${pm2} м²`);
+    return { wpu, tot, pm2, lmm, dbg: d };
+  }
+  if (part.mtype === 'area') {
+    const wm = part.w || 0, hm = part.h || 0, wM = wm / 1000, hM = hm / 1000, q = part.qty || 1;
+    const kgm2 = mat.kgm2 || 0, a2 = r4(wM * hM), wpu = r4(a2 * kgm2), tot = r4(wpu * q), pm2 = r4(a2 * 2 * q);
+    d.push(`${fm(wm)} × ${fm(hm)} мм → ${a2.toFixed(6)} м²`);
+    d.push(`${a2.toFixed(6)} м² × ${kgm2} кг/м² = ${wpu} кг/шт`);
+    d.push(`Покраска: ${a2.toFixed(4)} м² × 2 стор. × ${q} = ${pm2} м²`);
+    return { wpu, tot, pm2, lmm: 0, dbg: d };
+  }
+  if (part.mtype === 'piece') {
+    const wpu = part.pw || 0, q = part.qty || 1, tot = r4(wpu * q);
+    d.push(`${wpu} кг/шт × ${q} шт = ${tot} кг`);
+    return { wpu, tot, pm2: 0, lmm: 0, dbg: d };
+  }
+  return { wpu: 0, tot: 0, pm2: 0, lmm: 0, dbg: [] };
+}
+
+function cCost(wKg, price) {
+  if (!price || !wKg) return { cost: 0, d: '—' };
+  const cost = r4(wKg / 1000 * price.price);
+  return { cost, d: `${wKg.toFixed(2)} кг ÷ 1000 × ₽${fm(price.price)}/т = ₽${fm(cost)}` };
+}
+
+function cAll() {
+  let tW = 0, tC = 0, tP = 0, tPts = 0, tFw = 0, tFc = 0; const bM = {}, ws = [];
+  for (const a of asms) { for (const p of a.parts) {
+    const mat = MATS.find(m => m.id === p.mid); if (!mat) continue;
+    const { tot, pm2 } = cPW(p, mat); const mu = a.qty || 1;
+    const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
+    const { cost } = cCost(wT, pr);
+    if (p.partCategory === 'FASTENER') { tFw += wT; tFc += cost; } else { tW += wT; tP += pT; }
+    tC += cost; tPts++;
+    if (!pr) ws.push(`Нет цены: ${mat.code}`);
+    if (!bM[mat.id]) bM[mat.id] = { mat, w: 0, c: 0, p: 0 };
+    bM[mat.id].w += wT; bM[mat.id].c += cost; bM[mat.id].p += pT;
+  }}
+  return { tW: r4(tW), tC: r4(tC), tP: r4(tP), tPts, tFw: r4(tFw), tFc: r4(tFc), bM, ws: [...new Set(ws)] };
+}
+
+function calcAsmPaintArea(a) {
+  let area = 0; const mu = a.qty || 1;
+  for (const p of a.parts) { const mat = MATS.find(m => m.id === p.mid); if (!mat) continue; const { pm2 } = cPW(p, mat); area += r4((pm2 || 0) * mu); }
+  return r4(area);
+}
+
+function calcMaterialCostSimple(wKg, ppt) { return ppt && wKg ? r4(wKg / 1000 * ppt) : 0; }
+
+function calcByProfileType() {
+  const result = {};
+  for (const a of asms) {
+    for (const p of a.parts) {
+      if (p.partCategory === 'FASTENER') continue;
+      const mat = MATS.find(m => m.id === p.mid); if (!mat) continue;
+      const { tot } = cPW(p, mat);
+      const wT = r4(tot * (a.qty || 1));
+      const key = mat.name || mat.code;
+      if (!result[key]) result[key] = { mat, w: 0 };
+      result[key].w += wT;
+    }
+  }
+  return Object.values(result).sort((a, b) => b.w - a.w);
+}
+
+// ─── SECTIONS STATE ───────────────────────────────────────────────────────────
+
+function getAsmSections(asmId) {
+  if (!_asmSections[asmId]) _asmSections[asmId] = { mat: true, fas: false, lkm: false };
+  return _asmSections[asmId];
+}
+function toggleAsmSection(asmId, sec) {
+  const s = getAsmSections(asmId);
+  s[sec] = !s[sec];
+  renderAsms();
+}
+
+// ─── INLINE SEARCH ────────────────────────────────────────────────────────────
+
+function doAsmSearch(inp, asmId, category) {
+  const q = inp.value.trim().toLowerCase();
+  const ddId = `sd-${category.toLowerCase()}-${asmId}`;
+  const dd = document.getElementById(ddId);
+  if (!dd) return;
+  let ms = MATS;
+  if (category === 'FASTENER') ms = ms.filter(m => m.domain === 'FASTENER' || (m.domain === 'STRUCTURAL' && m.mtype === 'PIECE'));
+  else ms = ms.filter(m => m.domain !== 'FASTENER' && (m.kgm != null || m.kgm2 != null));
+  if (q) ms = ms.filter(m => m.code.toLowerCase().includes(q) || m.name.toLowerCase().includes(q));
+  if (!ms.length) {
+    dd.innerHTML = `<div class="sd-empty">Ничего не найдено</div>`;
+    dd.classList.add('open');
+    return;
+  }
+  const items = ms.slice(0, 30).map(m => {
+    const pr = gP(m.id);
+    const priceStr = pr ? `<span class="sd-price">₽${fm(pr.price)}/т</span>` : `<span style="color:var(--red);font-size:9px">⚠ нет цены</span>`;
+    return `<div class="sd-item" onmousedown="addPartInline('${asmId}','${m.id}','${category}');document.getElementById('${inp.id}').value='';closeAsmSearch('${asmId}','${category.toLowerCase()}')">
+      <span class="sd-code">${m.code}</span>
+      <span class="sd-name">${m.name}</span>
+      ${priceStr}
+    </div>`;
+  }).join('');
+  dd.innerHTML = items;
+  dd.classList.add('open');
+}
+
+function closeAsmSearch(asmId, catKey) {
+  const dd = document.getElementById(`sd-${catKey}-${asmId}`);
+  if (dd) dd.classList.remove('open');
+}
+
+function addPartInline(asmId, matId, category) {
+  const mat = MATS.find(m => m.id === matId);
+  if (!mat) return;
+  const a = asms.find(a => a.id === asmId);
+  if (!a) return;
+  let part;
+  if (mat.mtype === 'PIECE' || category === 'FASTENER') {
+    part = { id: 'pt' + nP++, mid: matId, name: '', mtype: 'piece', qty: 1, pw: mat.unitKg || 0, partCategory: category };
+  } else if (mat.kgm2 != null && mat.kgm == null) {
+    part = { id: 'pt' + nP++, mid: matId, name: '', mtype: 'area', w: 0, h: 0, qty: 1, partCategory: category };
+  } else {
+    part = { id: 'pt' + nP++, mid: matId, name: '', mtype: 'linear', len: mat.sl?.[0] || 0, qty: 1, partCategory: category };
+  }
+  a.parts.push(part);
+  // Ensure section is expanded
+  const s = getAsmSections(asmId);
+  if (category === 'FASTENER') s.fas = true; else s.mat = true;
+  refresh(); saveDraft();
+  toast(`${mat.code} добавлен — нажмите ✏ для задания размеров`, 'success');
+}
+
+// ─── BOM ROWS ─────────────────────────────────────────────────────────────────
+
+const _bomCollapsed = new Set();
+
+function renderBomRows(a) {
+  if (!a.parts.length) return `<tr><td colspan="11"><div class="pt-empty">Деталей нет</div></td></tr>`;
+  const groupMap = new Map();
+  const ungrouped = [];
+  for (const p of a.parts) {
+    if (p.bomGroupKey) {
+      if (!groupMap.has(p.bomGroupKey)) groupMap.set(p.bomGroupKey, { key: p.bomGroupKey, label: p.bomGroupLabel || p.bomGroupKey, sortPath: p.bomSortPath || '999', depth: p.bomDepth || 0, tmplCode: p.bomTemplateCode || '', parts: [] });
+      groupMap.get(p.bomGroupKey).parts.push(p);
+    } else { ungrouped.push(p); }
+  }
+  const sorted = [...groupMap.values()].sort((x, y) => x.sortPath.localeCompare(y.sortPath));
+  let html = '';
+  for (const grp of sorted) {
+    const collapsed = _bomCollapsed.has(`${a.id}:${grp.key}`);
+    const indent = 8 + grp.depth * 12;
+    html += `<tr class="bom-grp-hdr" onclick="toggleBomGroup('${a.id}','${grp.key.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      <td colspan="9" style="padding-left:${indent}px">
+        <span style="font-size:9px;color:var(--txtm)">${collapsed ? '▶' : '▼'}</span>
+        <span style="font-weight:600;font-size:11px;margin-left:4px;color:var(--txts)">${grp.label}</span>
+        ${grp.tmplCode ? `<span style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--txtm);margin-left:6px">${grp.tmplCode}</span>` : ''}
+        <span style="float:right;font-size:9px;color:var(--txtm)">${grp.parts.length} дет.</span>
+      </td></tr>`;
+    if (!collapsed) for (const p of grp.parts) html += renderPR(p, a);
+  }
+  if (ungrouped.length) {
+    if (sorted.length) html += `<tr class="bom-grp-ungrouped"><td colspan="9">— без шаблона —</td></tr>`;
+    for (const p of ungrouped) html += renderPR(p, a);
+  }
+  return html;
+}
+
+function renderPR(p, a) {
+  // AI part without matched material — special unresolved row
+  if (p.aiGenerated && !p.mid) {
+    return `<tr class="ai-row-err" draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+      <td colspan="7">
+        <div class="ai-unresolved">
+          <span class="ai-badge ai-err">⚠ без матч</span>
+          <span class="ai-raw">"${p.aiRawText || p.name || '—'}"</span>
+          <span style="font-size:10px;color:var(--txtm)">${p.qty || 1} ${p.name ? '' : 'шт'}</span>
+        </div>
+      </td>
+      <td><span class="mv" style="color:var(--txts)">—</span></td>
+      <td><div class="pt-acts">
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Выбрать материал">⇄</button>
+        <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  }
+
+  const mat = MATS.find(m => m.id === p.mid) || _archivedMats[p.mid]; if (!mat) return '';
+  const archivedBadge = mat.archived ? '<span style="color:var(--amber);font-size:9px;font-weight:700;display:block">⚠ архив</span>' : '';
+  const { wpu, tot, pm2, lmm, dbg: d } = cPW(p, mat); const mu = a.qty;
+  const wT = r4(tot * mu), pT = r4((pm2 || 0) * mu), pr = gP(p.mid);
+  const { cost, d: cd } = cCost(wT, pr);
+  const tl = { linear: '📏', area: '⬜', piece: '🔩' }[p.mtype] || '';
+  let dbgH = '';
+  if (dbg) dbgH = `<tr style="background:rgba(245,158,11,.05)"><td colspan="9" style="padding:3px 8px"><div class="debug-box" style="margin:0">${[...d, cd].join('<br>')}</div></td></tr>`;
+  const dimsCell = p.mtype === 'linear'
+    ? `<input class="ii" type="number" value="${p.len||0}" min="1" title="Длина, мм" onchange="inlineEdit('${a.id}','${p.id}','len',+this.value)"><span class="ii-unit">мм</span>`
+    : p.mtype === 'area'
+    ? `<input class="ii" type="number" value="${p.w||0}" min="1" title="Ширина, мм" onchange="inlineEdit('${a.id}','${p.id}','w',+this.value)"><span class="ii-sep">×</span><input class="ii" type="number" value="${p.h||0}" min="1" title="Высота, мм" onchange="inlineEdit('${a.id}','${p.id}','h',+this.value)"><span class="ii-unit">мм</span>`
+    : fmtD(p);
+  const qtyCell = `<input class="ii ii-sm" type="number" value="${p.qty}" min="1" title="Количество" onchange="inlineEdit('${a.id}','${p.id}','qty',+this.value)"><span class="ii-unit">шт</span>`;
+
+  // AI row decorations
+  let aiRowClass = '', aiBadge = '', aiActsBtns = '';
+  if (p.aiGenerated) {
+    const st = p.aiStatus;
+    const conf = p.aiConfidence != null ? Math.round(p.aiConfidence * 100) : null;
+    const confStr = conf != null ? conf + '%' : '';
+    if (st === 'confirmed' || st === 'replaced') {
+      aiRowClass = 'ai-row-ok';
+      aiBadge = `<span class="ai-badge ai-ok">✓ ${confStr}</span>`;
+    } else if (st === 'no_match') {
+      aiRowClass = 'ai-row-err';
+      aiBadge = `<span class="ai-badge ai-err">⚠ ${confStr}</span>`;
+      aiActsBtns = `<div class="ai-acts">
+        <button class="ai-btn ai-btn-ok" onclick="doConfirmAiPart('${a.id}','${p.id}')" title="Подтвердить">✓</button>
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Заменить материал">⇄</button>
+      </div>`;
+    } else {
+      aiRowClass = 'ai-row-warn';
+      aiBadge = `<span class="ai-badge ai-warn">AI ${confStr}</span>`;
+      aiActsBtns = `<div class="ai-acts">
+        <button class="ai-btn ai-btn-ok" onclick="doConfirmAiPart('${a.id}','${p.id}')" title="Подтвердить">✓</button>
+        <button class="ai-btn ai-btn-sw" onclick="openReplaceAi('${a.id}','${p.id}')" title="Заменить материал">⇄</button>
+      </div>`;
+    }
+  }
+
+  return `<tr class="${aiRowClass}" draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+      ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+      ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+    <td style="overflow:hidden"><span class="drag-handle">⠿</span><span class="mn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;max-width:100%">${mat.name}${aiBadge}</span><span class="mc">${mat.code}</span>${archivedBadge}</td>
+    <td style="font-size:11.5px;color:var(--txts)">${p.name || '—'}</td>
+    <td class="text-xs">${tl}</td>
+    <td class="mv" style="white-space:nowrap">${dimsCell}</td>
+    <td class="mv" style="white-space:nowrap">${qtyCell}</td>
+    <td class="mv">${wpu.toFixed(2)} кг</td>
+    <td><span class="chip-w">${wT.toFixed(2)} кг</span></td>
+    <td>${pr ? `<span class="mv">₽${fm(pr.price)}</span>` : '<span style="color:var(--red);font-size:10px">⚠</span>'}</td>
+    <td><div class="pt-acts">
+      ${aiActsBtns ? '' : `<button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')" title="Изменить материал">✏</button>`}
+      <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
+    </div>${aiActsBtns}${pr ? `<span class="cv">₽${fm(Math.round(cost))}</span>` : ''}</td>
+  </tr>${dbgH}`;
+}
+
+function fmtD(p) {
+  if (p.mtype === 'linear') return `${fm(p.len || 0)} мм`;
+  if (p.mtype === 'area') return `${fm(p.w || 0)} × ${fm(p.h || 0)} мм`;
+  if (p.mtype === 'piece') return `${p.qty} × ${p.pw || '?'} кг`;
+  return '—';
+}
+
+// ─── RENDER ASSEMBLIES ────────────────────────────────────────────────────────
+
+function renderAsms() {
+  const c = document.getElementById('asms-container');
+  if (!asms.length) {
+    c.innerHTML = `<div class="ac" style="border-style:dashed"><div style="padding:24px;text-align:center;color:var(--txtm)"><div style="font-size:24px;margin-bottom:8px">📦</div>Узлов пока нет — введите название выше и нажмите «+ Узел»</div></div>`;
+    return;
+  }
+  c.innerHTML = asms.map(a => {
+    let aW = 0, aP = 0, aC = 0;
+    for (const p of a.parts) {
+      const mat = MATS.find(m => m.id === p.mid); if (!mat) continue;
+      const { tot, pm2 } = cPW(p, mat); const mu = a.qty;
+      const wT = r4(tot * mu); aW += wT; aP += r4((pm2 || 0) * mu);
+      const { cost } = cCost(wT, gP(p.mid)); aC += cost;
+    }
+    const tots = aW > 0 ? `<span class="ch chw">${f3(aW / 1000)} т</span><span class="ch chp">${aP.toFixed(2)} м²</span><span class="ch chc">₽ ${fm(Math.round(aC))}</span>` : '';
+    const sec = getAsmSections(a.id);
+    const materialParts = a.parts.filter(p => p.partCategory !== 'FASTENER');
+    const fasteners = a.parts.filter(p => p.partCategory === 'FASTENER');
+    const lkmLayers = _asmCoatings[a.id] || [];
+    const asmCollapsed = sec._asmCollapsed;
+
+    // Compute section summaries
+    let matW = 0, matC = 0;
+    for (const p of materialParts) { const mat = MATS.find(m => m.id === p.mid); if (!mat) continue; const { tot } = cPW(p, mat); const wT = r4(tot * (a.qty || 1)); matW += wT; const { cost } = cCost(wT, gP(p.mid)); matC += cost; }
+
+    return `<div class="ac">
+      <div class="ah">
+        <span class="atog" onclick="toggleAsmBody('${a.id}')">${asmCollapsed ? '▶' : '▼'}</span>
+        <span class="aname">${a.name}</span>
+        <input class="aqty" type="number" value="${a.qty}" min="1" title="Кол-во узлов" onchange="updAQ('${a.id}',this.value)">
+        <div class="atots">${tots}</div>
+        <div class="aacts">
+          <button class="xb xm" onclick="openMod('${a.id}','MATERIAL')">+ Деталь</button>
+          <button class="xb xf" onclick="openMod('${a.id}','FASTENER')">+ Метиз</button>
+          <button class="xb xt" onclick="openTmplPicker('${a.id}')">📦</button>
+          <button class="xb xd" onclick="remA('${a.id}')">✕</button>
+        </div>
+      </div>
+      ${asmCollapsed ? '' : `
+      <div class="abody">
+        <!-- РњРђРўР•Р ИРђР›Р« -->
+        <div class="sg">
+          <div class="sgh" onclick="toggleAsmSection('${a.id}','mat')">
+            <span class="sgt">${sec.mat ? '▼' : '▶'}</span>
+            <span class="sgl m">Материалы</span>
+            <span class="sgc">${materialParts.length}</span>
+            <span class="sgs">${matW > 0 ? f3(matW / 1000) + ' т · ₽' + fm(Math.round(matC)) : '—'}</span>
+          </div>
+          ${sec.mat ? `
+          <div class="search-bar">
+            <div class="search-wrap">
+              <span class="search-ico">🔍</span>
+              <input class="search-in" id="srch-mat-${a.id}" placeholder="Поиск материала (код, название)..."
+                autocomplete="off" oninput="doAsmSearch(this,'${a.id}','MATERIAL')"
+                onblur="setTimeout(()=>closeAsmSearch('${a.id}','material'),150)">
+              <div class="search-dropdown" id="sd-material-${a.id}"></div>
+            </div>
+          </div>
+          <div class="pt-wrap"><table class="pt">
+            <thead><tr><th>Материал<span class="pt-rszr" onmousedown="ptRszStart(event,0)"></span></th><th>Деталь<span class="pt-rszr" onmousedown="ptRszStart(event,1)"></span></th><th>Тип<span class="pt-rszr" onmousedown="ptRszStart(event,2)"></span></th><th>Размеры<span class="pt-rszr" onmousedown="ptRszStart(event,3)"></span></th><th>Кол.<span class="pt-rszr" onmousedown="ptRszStart(event,4)"></span></th><th>кг/шт<span class="pt-rszr" onmousedown="ptRszStart(event,5)"></span></th><th>кг×узел<span class="pt-rszr" onmousedown="ptRszStart(event,6)"></span></th><th>₽/т<span class="pt-rszr" onmousedown="ptRszStart(event,7)"></span></th><th>Сумма<button class="pt-col-btn" onclick="openPtColPicker(event)" title="Настройка столбцов">⚙</button></th></tr></thead>
+            <tbody>${renderBomRows({ ...a, parts: materialParts })}</tbody>
+          </table></div>` : ''}
+        </div>
+
+        <!-- РњР•РўИР—Р« -->
+        <div class="sg">
+          <div class="sgh" onclick="toggleAsmSection('${a.id}','fas')">
+            <span class="sgt">${sec.fas ? '▼' : '▶'}</span>
+            <span class="sgl f">Метизы</span>
+            <span class="sgc">${fasteners.length}</span>
+          </div>
+          ${sec.fas ? `
+          <div class="search-bar">
+            <div class="search-wrap">
+              <span class="search-ico">🔍</span>
+              <input class="search-in" id="srch-fas-${a.id}" placeholder="Поиск метиза..."
+                autocomplete="off" oninput="doAsmSearch(this,'${a.id}','FASTENER')"
+                onblur="setTimeout(()=>closeAsmSearch('${a.id}','fastener'),150)">
+              <div class="search-dropdown" id="sd-fastener-${a.id}"></div>
+            </div>
+          </div>
+          ${renderFastenersTab(a, fasteners)}` : ''}
+        </div>
+
+        <!-- ЛКМ -->
+        <div class="sg">
+          <div class="sgh" onclick="toggleAsmSection('${a.id}','lkm')">
+            <span class="sgt">${sec.lkm ? '▼' : '▶'}</span>
+            <span class="sgl l">ЛКМ</span>
+            <span class="sgc">${lkmLayers.length}</span>
+          </div>
+          ${sec.lkm ? renderLKMTab(a) : ''}
+        </div>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+function toggleAsmBody(asmId) {
+  const s = getAsmSections(asmId);
+  s._asmCollapsed = !s._asmCollapsed;
+  renderAsms();
+}
+
+// ─── FASTENERS TAB ────────────────────────────────────────────────────────────
+
+function renderFastenersTab(a, fasteners) {
+  if (!fasteners.length) return `<div style="padding:14px;text-align:center;color:var(--txtm);font-size:11px">Метизов нет — используйте поиск выше</div>`;
+  const mu = a.qty || 1;
+  let html = `<table class="pt"><colgroup><col><col><col><col><col><col><col><col></colgroup><thead><tr><th>Код</th><th>Наименование</th><th>кг/шт</th><th>Кол.</th><th>кг×узел</th><th>₽/шт</th><th>Сумма</th><th></th></tr></thead><tbody>`;
+  let totW = 0, totC = 0;
+  for (const p of fasteners) {
+    const mat = MATS.find(m => m.id === p.mid);
+    const pw = p.pw != null ? Number(p.pw) : (mat?.unitKg || 0);
+    const wT = r4(pw * (p.qty || 1) * mu);
+    const pr = gP(p.mid);
+    const ppp = pr?.ppp != null ? pr.ppp : null;
+    const cost = ppp != null ? r4(ppp * (p.qty || 1) * mu) : calcMaterialCostSimple(wT, pr?.price);
+    totW += wT; totC += cost;
+    html += `<tr draggable="true" data-partid="${p.id}" data-asmid="${a.id}"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="rowDrop(event)" ondragend="rowDragEnd(event)">
+      <td class="mc"><span class="drag-handle">⠿</span>${mat ? mat.code : '?'}</td>
+      <td class="text-sm">${p.name || mat?.name || ''}</td>
+      <td class="mv">${pw ? pw.toFixed(4) + ' кг' : '—'}</td>
+      <td class="mv">${p.qty || 1}</td>
+      <td><span class="chip-w">${wT ? wT.toFixed(4) + ' кг' : '—'}</span></td>
+      <td class="mv">${ppp != null ? '₽' + fm(ppp) : '—'}</td>
+      <td><span class="cv">${cost ? '₽' + fm(Math.round(cost)) : '—'}</span></td>
+      <td><div class="pt-acts" style="opacity:1">
+        <button class="ib ibe" onclick="openEdit('${a.id}','${p.id}')">✏</button>
+        <button class="ib ibd" onclick="remP('${a.id}','${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  }
+  html += `</tbody><tfoot><tr style="font-weight:700">
+    <td colspan="4" style="text-align:right;font-size:9.5px;color:var(--txtm)">ИС‚РѕРіРѕ метизов:</td>
+    <td><span class="chip-w">${totW.toFixed(4)} кг</span></td>
+    <td></td><td><span class="cv">${totC ? '₽' + fm(Math.round(totC)) : '—'}</span></td>
+    <td></td>
+  </tr></tfoot></table>`;
+  return html;
+}
+
+// ─── LKM TAB ──────────────────────────────────────────────────────────────────
+
+function renderLKMTab(a) {
+  const layers = _asmCoatings[a.id] || [];
+  const autoArea = calcAsmPaintArea(a);
+  const hasCatalog = COATINGS_CATALOG.length > 0;
+  if (!hasCatalog) return `<div class="lkm-empty">Каталог ЛКМ не загружен — проверьте соединение</div>`;
+  let rows = '';
+  for (const layer of layers) {
+    const mat = COATINGS_CATALOG.find(m => m.id === layer.coatingMaterialId);
+    if (!mat) { rows += `<tr><td colspan="8"><span class="text-muted text-xs">Материал не найден</span></td></tr>`; continue; }
+    const areaM2 = layer.autoAreaLink ? autoArea : (layer.manualAreaM2 || 0);
+    const { cKg, cL, tKg, tCost } = calcLKMRow(layer, mat, areaM2);
+    const typeCls = { PRIMER: 'lkm-primer', BASE_COAT: 'lkm-base', TOPCOAT: 'lkm-top', CLEAR: 'lkm-clear', OTHER: 'lkm-other' }[mat.coatingType] || 'lkm-other';
+    const typeLabel = { PRIMER: 'Грунт', BASE_COAT: 'Пром.', TOPCOAT: 'Финиш', CLEAR: 'Лак', OTHER: 'Прочее' }[mat.coatingType] || mat.coatingType;
+    rows += `<tr draggable="true" data-partid="${layer.id}" data-asmid="${a.id}" data-lkm="1"
+        ondragstart="rowDragStart(event)" ondragover="rowDragOver(event)"
+        ondragleave="rowDragLeave(event)" ondrop="lkmDrop(event)" ondragend="rowDragEnd(event)">
+      <td><span class="drag-handle">⠿</span><span class="lkm-type-badge ${typeCls}">${typeLabel}</span></td>
+      <td><span class="mc">${mat.code}</span><br><span class="text-xs text-muted">${mat.name}</span></td>
+      <td>${layer.autoAreaLink ? `<span class="chip-p">${autoArea.toFixed(2)} м² <span class="text-xs" style="opacity:.6">авто</span></span>` : `<span class="chip-p">${Number(layer.manualAreaM2 || 0).toFixed(2)} м² <span class="text-xs" style="opacity:.6">ручн</span></span>`}</td>
+      <td class="mv">${layer.selectedDftMkm ?? mat.referenceDftMkm} мкм</td>
+      <td class="mv">${layer.dilutionPercent != null ? layer.dilutionPercent : mat.recommendedDilutionPercent ?? 0}%</td>
+      <td><span class="chip-w">${cKg.toFixed(3)} кг</span></td>
+      <td>${tCost != null ? `<span class="chip-c">₽${fm(Math.round(tCost))}</span>` : '<span class="text-muted text-xs">нет цены</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="ib ibe" style="margin-right:3px" onclick="openLKMEdit('${a.id}','${layer.id}')">✏</button>
+        <button class="ib ibd" onclick="deleteLKMLayer('${a.id}','${layer.id}')">✕</button>
+      </td>
+    </tr>`;
+  }
+  if (!layers.length) rows = `<tr><td colspan="8"><div class="lkm-empty">Слоёв нет — добавьте первый</div></td></tr>`;
+  const shortcuts = [{ t: 'Г', type: 'PRIMER' }, { t: 'П', type: 'BASE_COAT' }, { t: 'Ф', type: 'TOPCOAT' }].map(s => {
+    const m = COATINGS_CATALOG.find(x => x.coatingType === s.type);
+    return m ? `<button class="abtn" style="padding:2px 7px;font-size:10px" onclick="quickLKM('${a.id}','${m.id}')" title="${m.name}">${s.t}</button>` : '';
+  }).join('');
+  return `<table class="lkm-table"><thead><tr><th>Тип</th><th>Материал</th><th>Площадь</th><th>ДПП</th><th>Разб.</th><th>Расход</th><th>Стоимость</th><th></th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <div class="lkm-footer">
+    <button class="abtn" style="padding:3px 9px;font-size:10.5px" onclick="openLKMEdit('${a.id}',null)">+ Слой</button>
+    ${shortcuts}
+    <span class="text-xs text-muted" style="margin-left:auto">авто-площадь: <strong>${autoArea.toFixed(2)} м²</strong></span>
+  </div>`;
+}
+
+function calcLKMRow(layer, mat, areaM2) {
+  const actualDFT = layer.selectedDftMkm ?? mat.referenceDftMkm;
+  const dilution = layer.dilutionPercent != null ? Number(layer.dilutionPercent) : (mat.recommendedDilutionPercent != null ? Number(mat.recommendedDilutionPercent) : 0);
+  const cKg = r4(Number(areaM2) * Number(mat.consumptionGm2) * (actualDFT / mat.referenceDftMkm) / 1000);
+  const cL = Number(mat.densityKgL) > 0 ? r4(cKg / Number(mat.densityKgL)) : null;
+  const tKg = r4(cKg * (1 + dilution / 100));
+  const tCost = mat.pricePerKg != null ? r4(tKg * Number(mat.pricePerKg)) : null;
+  return { cKg, cL, tKg, tCost };
+}
+
+function quickLKM(asmId, materialId) {
+  if (!_asmCoatings[asmId]) _asmCoatings[asmId] = [];
+  const layers = _asmCoatings[asmId];
+  const mat = COATINGS_CATALOG.find(m => m.id === materialId);
+  layers.push({ id: 'lkm' + Date.now(), coatingMaterialId: materialId, layerNumber: layers.length + 1, autoAreaLink: true, manualAreaM2: null, selectedDftMkm: null, dilutionPercent: null, notes: null });
+  toast(`Слой ${mat?.name || ''} добавлен`, 'success');
+  renderAsms();
+}
+
+function openLKMEdit(asmId, layerId) {
+  _lkmCurAsm = asmId; _lkmCurId = layerId;
+  const layer = layerId ? (_asmCoatings[asmId] || []).find(l => l.id === layerId) : null;
+  const sel = document.getElementById('lkm-mat-sel');
+  const typeLabel = { PRIMER: 'Грунт', BASE_COAT: 'Промежуточный', TOPCOAT: 'Финишный', CLEAR: 'Лак', OTHER: 'Прочее' };
+  const grouped = {};
+  for (const m of COATINGS_CATALOG) { if (!grouped[m.coatingType]) grouped[m.coatingType] = []; grouped[m.coatingType].push(m); }
+  sel.innerHTML = '<option value="">— выберите —</option>' + Object.entries(grouped).map(([type, mats]) => `<optgroup label="${typeLabel[type] || type}">${mats.map(m => `<option value="${m.id}">${m.code} — ${m.name}</option>`).join('')}</optgroup>`).join('');
+  sel.value = layer?.coatingMaterialId || '';
+  document.getElementById('lkm-auto').checked = layer ? layer.autoAreaLink : true;
+  document.getElementById('lkm-manual-area').value = layer?.manualAreaM2 || '';
+  document.getElementById('lkm-dft').value = layer?.selectedDftMkm || '';
+  document.getElementById('lkm-dilution').value = layer?.dilutionPercent != null ? layer.dilutionPercent : '';
+  document.getElementById('lkm-notes').value = layer?.notes || '';
+  document.getElementById('lkm-layer-num').value = layer?.layerNumber || ((_asmCoatings[asmId] || []).length + 1);
+  document.getElementById('lkm-modal-title').textContent = layerId ? 'Редактировать слой' : 'Добавить слой ЛКМ';
+  toggleLKMManual();
+  document.getElementById('lkm-modal-bg').classList.add('open');
+}
+function closeLKMModal() { document.getElementById('lkm-modal-bg').classList.remove('open'); }
+function toggleLKMManual() { document.getElementById('lkm-manual-wrap').style.display = document.getElementById('lkm-auto').checked ? 'none' : 'block'; }
+
+function saveLKMLayer() {
+  const matId = document.getElementById('lkm-mat-sel').value;
+  if (!matId) { toast('Выберите материал', 'error'); return; }
+  const auto = document.getElementById('lkm-auto').checked;
+  const layer = { id: _lkmCurId || ('lkm' + Date.now()), coatingMaterialId: matId, layerNumber: parseInt(document.getElementById('lkm-layer-num').value) || 1, autoAreaLink: auto, manualAreaM2: !auto && document.getElementById('lkm-manual-area').value ? Number(document.getElementById('lkm-manual-area').value) : null, selectedDftMkm: document.getElementById('lkm-dft').value ? parseInt(document.getElementById('lkm-dft').value) : null, dilutionPercent: document.getElementById('lkm-dilution').value !== '' ? Number(document.getElementById('lkm-dilution').value) : null, notes: document.getElementById('lkm-notes').value || null };
+  if (!_asmCoatings[_lkmCurAsm]) _asmCoatings[_lkmCurAsm] = [];
+  const layers = _asmCoatings[_lkmCurAsm];
+  if (_lkmCurId) { const idx = layers.findIndex(l => l.id === _lkmCurId); if (idx >= 0) layers[idx] = layer; } else layers.push(layer);
+  closeLKMModal(); renderAsms(); toast('Слой сохранён', 'success');
+}
+function deleteLKMLayer(asmId, layerId) {
+  if (!_asmCoatings[asmId]) return;
+  _asmCoatings[asmId] = _asmCoatings[asmId].filter(l => l.id !== layerId);
+  renderAsms();
+}
+
+// ─── TOTALS BAR ───────────────────────────────────────────────────────────────
+
+function updSum() {
+  const { tW, tC, tP, tPts, tFw, tFc, bM, ws } = cAll();
+  const tWt = tW / 1000;
+  document.getElementById('tb-w').innerHTML = `${f3(tWt)} <span style="font-size:11px;color:var(--txtm)">т</span>`;
+  document.getElementById('tb-w-sub').textContent = `${asms.length} узл. · ${tPts} дет.`;
+  document.getElementById('tb-w-bar').style.width = Math.min(100, tWt * 10) + '%';
+  document.getElementById('tb-c').innerHTML = `${fm(Math.round(tC))} <span style="font-size:11px;color:var(--txtm)">₽</span>`;
+  document.getElementById('tb-c-sub').textContent = ws.length ? `${ws.length} поз. без цены ⚠` : 'все цены актуальны';
+  document.getElementById('tb-p').innerHTML = `${tP.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">м²</span>`;
+  const lkmCount = Object.values(_asmCoatings).flat().length;
+  document.getElementById('tb-p-sub').textContent = lkmCount ? `${lkmCount} слоёв ЛКМ` : 'ЛКМ не назначен';
+  document.getElementById('tb-f').innerHTML = `${tFw.toFixed(1)} <span style="font-size:11px;color:var(--txtm)">кг</span>`;
+  const fastCnt = asms.flatMap(a => a.parts.filter(p => p.partCategory === 'FASTENER')).length;
+  document.getElementById('tb-f-sub').textContent = fastCnt ? `${fastCnt} позиций · ₽${fm(Math.round(tFc))}` : '—';
+  // Debug
+  const de = document.getElementById('dbg-sum');
+  const es = Object.values(bM);
+  if (dbg) { de.classList.remove('hidden'); document.getElementById('dbg-sum-lines').innerHTML = es.map(e => `${e.mat.code}: ${f3(e.w / 1000)} т × ₽${fm(gP(e.mat.id)?.price || 0)}/т = ₽${fm(Math.round(e.c))}`).join('<br>'); }
+  else de.classList.add('hidden');
+  renderRightPanel();
+}
+
+function refresh() { renderAsms(); updSum(); updateAiBanner(); }
+
+// ─── AI NORMALIZATION REVIEW ──────────────────────────────────────────────────
+
+let _aiReplaceAid = null, _aiReplacePid = null;
+
+function updateAiBanner() {
+  const allParts = asms.flatMap(a => a.parts);
+  const aiParts  = allParts.filter(p => p.aiGenerated);
+  if (!aiParts.length) { document.getElementById('ai-banner').style.display = 'none'; return; }
+
+  const ok  = aiParts.filter(p => p.aiStatus === 'confirmed' || p.aiStatus === 'replaced').length;
+  const err = aiParts.filter(p => !p.mid || p.aiStatus === 'no_match').length;
+  const warn = aiParts.length - ok - err;
+
+  const banner = document.getElementById('ai-banner');
+  banner.style.display = 'flex';
+
+  const okEl = document.getElementById('ai-stat-ok');
+  const warnEl = document.getElementById('ai-stat-warn');
+  const errEl = document.getElementById('ai-stat-err');
+  okEl.textContent   = ok   + ' ✓'; okEl.style.display   = ok   ? '' : 'none';
+  warnEl.textContent = warn + ' AI'; warnEl.style.display = warn ? '' : 'none';
+  errEl.textContent  = err  + ' ⚠'; errEl.style.display  = err  ? '' : 'none';
+}
+
+async function doConfirmAiPart(aid, pid) {
+  const a = asms.find(a => a.id === aid); if (!a) return;
+  const p = a.parts.find(p => p.id === pid); if (!p) return;
+  try {
+    const r = await fetch('/api/parts/' + pid + '/ai-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('erp_token') || '') },
+      body: JSON.stringify({ action: 'confirmed' }),
+    });
+    if (!r.ok) { const d = await r.json(); toast(d.error || 'Ошибка', 'error'); return; }
+    p.aiStatus = 'confirmed';
+    refresh();
+    toast('Подтверждено', 'success');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function openReplaceAi(aid, pid) {
+  _aiReplaceAid = aid; _aiReplacePid = pid;
+  openEdit(aid, pid);
+  document.getElementById('ai-remember-wrap').style.display = 'flex';
+  document.getElementById('modal-title').textContent = 'Заменить материал (AI)';
+  document.getElementById('btn-confirm').textContent = 'Заменить';
+}
+
+// ─── RIGHT PANEL ──────────────────────────────────────────────────────────────
+
+function setRpTab(tab) {
+  _rpTab = tab;
+  document.querySelectorAll('.sr-tab').forEach(el => {
+    const m = el.getAttribute('onclick')?.match(/setRpTab\('(\w+)'\)/);
+    el.classList.toggle('on', m?.[1] === tab);
+  });
+  if (tab === 'files') loadFiles();
+  else renderRightPanel();
+}
+
+function renderRightPanel() {
+  const body = document.getElementById('sr-body');
+  if (!body) return;
+  if (_rpTab === 'nodes')  body.innerHTML = renderRpNodes();
+  else if (_rpTab === 'profile') body.innerHTML = renderRpProfile();
+  else if (_rpTab === 'files')   body.innerHTML = renderRpFiles();
+  else body.innerHTML = renderRpRevs();
+}
+
+function renderRpNodes() {
+  if (!asms.length) return `<div class="sr-empty">Узлов пока нет</div>`;
+  const COLORS = ['var(--blue)', 'var(--green)', 'var(--amber)', 'var(--violet)', 'var(--cyan)', 'var(--red)'];
+  const blocks = asms.map((a, i) => {
+    let aW = 0, aC = 0;
+    for (const p of a.parts) { const mat = MATS.find(m => m.id === p.mid); if (!mat) continue; const { tot } = cPW(p, mat); const wT = r4(tot * (a.qty || 1)); aW += wT; const { cost } = cCost(wT, gP(p.mid)); aC += cost; }
+    const color = COLORS[i % COLORS.length];
+    return `<div class="sr-row">
+      <div class="sr-dot" style="background:${color}"></div>
+      <div class="sr-name" title="${a.name}">${a.name} <span style="font-size:9px;color:var(--txtm)">×${a.qty}</span></div>
+      <div class="sr-val">${f3(aW / 1000)} т</div>
+    </div>`;
+  }).join('');
+  const { tW, tC } = cAll();
+  return `<div class="sr-block">
+    <div class="sr-block-title">По узлам</div>
+    ${blocks}
+  </div>
+  <div class="sr-block">
+    <div class="sr-block-title">ИС‚РѕРіРѕ</div>
+    <div class="sr-row"><div class="sr-name">Масса</div><div class="sr-val">${f3(tW / 1000)} т</div></div>
+    <div class="sr-row"><div class="sr-name">Стоимость</div><div class="sr-val" style="color:var(--green)">₽${fm(Math.round(tC))}</div></div>
+  </div>`;
+}
+
+function renderRpProfile() {
+  const items = calcByProfileType();
+  if (!items.length) return `<div class="sr-empty">Нет данных</div>`;
+  const maxW = items[0].w;
+  const rows = items.slice(0, 15).map((item, i) => {
+    const pct = maxW > 0 ? Math.round(item.w / maxW * 100) : 0;
+    return `<div class="sr-row" style="flex-direction:column;align-items:stretch;gap:2px;padding:4px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="sr-name" title="${item.mat.code}">${item.mat.code}</span>
+        <span class="sr-val">${f3(item.w / 1000)} т</span>
+      </div>
+      <div style="height:2px;background:var(--brd);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px"></div></div>
+    </div>`;
+  }).join('');
+  return `<div class="sr-block"><div class="sr-block-title">По сортаменту</div>${rows}</div>`;
+}
+
+function renderRpRevs() {
+  if (!revs.length) return `<div class="sr-empty">Ревизий нет — зафиксируйте первую</div>`;
+  const recent = revs.slice().reverse().slice(0, 5);
+  const rows = recent.map((rev, i) => {
+    const isLast = i === 0;
+    return `<div class="sr-rev" onclick="go('revisions')">
+      <div class="rrt" style="display:flex;align-items:center;gap:5px">
+        <span class="sr-rev-num">Rev ${rev.num}</span>
+        <span class="sr-rev-badge ${isLast ? 'sr-rev-act' : 'sr-rev-old'}">${isLast ? 'актуальная' : 'вытеснена'}</span>
+      </div>
+      <div style="font-size:9.5px;color:var(--txtm);margin-top:2px">${new Date(rev.at).toLocaleDateString('ru')} · ${f3(rev.tW / 1000)} т · ₽${fm(Math.round(rev.tC))}</div>
+    </div>`;
+  }).join('');
+  return `<div class="sr-block" style="padding:0">
+    <div style="padding:6px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+      <div class="sr-block-title" style="margin:0">Последние ревизии</div>
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('revisions')">Все →</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function renderRpFiles() {
+  if (!_currentOrderId) return `<div class="sr-empty">Откройте заказ</div>`;
+  if (!_rpFiles.length) return `
+    <div class="sr-empty">Файлов нет</div>
+    <div style="padding:8px">
+      <button class="abtn" style="width:100%;text-align:center;font-size:11px" onclick="triggerFileUpload()">+ Загрузить файл</button>
+    </div>`;
+  const rows = _rpFiles.map(f => {
+    const icon = FILE_ICONS[f.fileType] || '📎';
+    const size = f.version ? formatFileSize(Number(f.version.sizeBytes)) : '';
+    const url  = f.version?.storageUrl;
+    return `<div class="sr-rev" style="display:flex;align-items:center;gap:7px;cursor:default">
+      <span style="font-size:15px;flex-shrink:0">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(f.title)}">${esc(f.title)}</div>
+        <div style="font-size:9.5px;color:var(--txtm)">${f.fileType}${size ? ' · ' + size : ''}</div>
+      </div>
+      ${url ? `<a href="${url}" target="_blank" style="color:var(--blue);font-size:13px;flex-shrink:0;text-decoration:none" title="Скачать">↓</a>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="sr-block" style="padding:0">
+    <div style="padding:6px 10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between">
+      <div class="sr-block-title" style="margin:0">Документы (${_rpFiles.length})</div>
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="triggerFileUpload()">+ Добавить</span>
+    </div>
+    ${rows}
+    <div style="padding:6px 10px;border-top:1px solid var(--brd)">
+      <span style="font-size:10px;color:var(--blue);cursor:pointer" onclick="go('files')">Все файлы →</span>
+    </div>
+  </div>`;
+}
+
+// ─── ASM CRUD ─────────────────────────────────────────────────────────────────
+
+function addAsm() {
+  const n = document.getElementById('new-asm-name').value.trim();
+  const q = parseInt(document.getElementById('new-asm-qty').value) || 1;
+  if (!n) { toast('Введите название', 'error'); return; }
+  asms.push({ id: 'a' + nA++, name: n, qty: q, parts: [] });
+  document.getElementById('new-asm-name').value = '';
+  document.getElementById('new-asm-qty').value = 1;
+  refresh(); saveDraft(); toast(`Узел «${n}» добавлен`, 'success');
+}
+function remA(id) { if (!confirm('Удалить узел со всеми деталями?')) return; asms = asms.filter(a => a.id !== id); refresh(); saveDraft(); }
+function updAQ(id, v) { const a = asms.find(a => a.id === id); if (a) { a.qty = Math.max(1, parseInt(v) || 1); refresh(); saveDraft(); } }
+function remP(aid, pid) { const a = asms.find(a => a.id === aid); if (a) { a.parts = a.parts.filter(p => p.id !== pid); refresh(); saveDraft(); } }
+function resetQuote() { if (!confirm('Сбросить всё?')) return; asms = []; revs = []; nA = 10; nP = 100; _currentOrderId = null; localStorage.removeItem(DRAFT_KEY); const _rc=document.getElementById('rev-count'); if(_rc)_rc.textContent=0; document.getElementById('order-rev-tag').style.display = 'none'; refresh(); }
+
+// ─── MODAL: ADD/EDIT PART ─────────────────────────────────────────────────────
+
+function openMod(aid, category = 'MATERIAL') {
+  curA = aid; _curPartCategory = category; curEP = null; selM = null;
+  curC = category === 'FASTENER' ? 'piece' : 'all';
+  resetForm();
+  const isFast = category === 'FASTENER';
+  document.getElementById('modal-title').textContent = isFast ? 'Добавить метиз' : 'Добавить деталь';
+  document.getElementById('btn-confirm').textContent = isFast ? 'Добавить метиз' : 'Добавить деталь';
+  document.getElementById('modal-ov').classList.add('open');
+  buildCF(); setMType(isFast ? 'piece' : 'linear');
+}
+
+function inlineEdit(aid, pid, field, value) {
+  const v = Number(value);
+  if (!isFinite(v) || v < 1) return;
+  const a = asms.find(a => a.id === aid);
+  if (!a) return;
+  const p = a.parts.find(p => p.id === pid);
+  if (!p) return;
+  p[field] = v;
+  renderAsms();
+  renderRpNodes();
+  saveDraft();
+}
+
+function openEdit(aid, pid) {
+  curA = aid; curEP = pid; selM = null; curC = 'all'; resetForm();
+  const a = asms.find(a => a.id === aid), p = a?.parts.find(p => p.id === pid);
+  if (!p) return;
+  setMType(p.mtype); selM = MATS.find(m => m.id === p.mid);
+  if (selM) { document.getElementById('mat-search').value = selM.code; showSel(); }
+  document.getElementById('p-len').value = p.len || '';
+  document.getElementById('p-qty').value = p.qty || 1;
+  document.getElementById('p-w').value = p.w || '';
+  document.getElementById('p-h').value = p.h || '';
+  document.getElementById('p-qty-a').value = p.qty || 1;
+  document.getElementById('p-qty-p').value = p.qty || 1;
+  document.getElementById('p-name').value = p.name || '';
+  if (p.mtype === 'piece' && selM) {
+    updatePwField();
+    if (selM.unitKg == null) { document.getElementById('p-pw').value = p.pw || ''; }
+    else if (p.pw != null && Math.abs(Number(p.pw) - selM.unitKg) > 0.00001) { document.getElementById('pw-override').checked = true; updatePwField(); document.getElementById('p-pw').value = p.pw; }
+  } else { document.getElementById('p-pw').value = p.pw || ''; }
+  document.getElementById('modal-title').textContent = 'Редактировать деталь';
+  document.getElementById('btn-confirm').textContent = 'Сохранить изменения';
+  document.getElementById('modal-ov').classList.add('open');
+  buildCF(); calcPart();
+}
+
+function closeModal() {
+  document.getElementById('modal-ov').classList.remove('open');
+  document.getElementById('mat-dd').classList.remove('open');
+  document.getElementById('ai-remember-wrap').style.display = 'none';
+  _aiReplaceAid = null; _aiReplacePid = null;
+}
+
+function resetForm() {
+  selM = null;
+  ['mat-search', 'p-len', 'p-w', 'p-h', 'p-name', 'p-pw'].forEach(id => document.getElementById(id).value = '');
+  ['p-qty', 'p-qty-a', 'p-qty-p'].forEach(id => document.getElementById(id).value = 1);
+  ['mat-sel', 'rem-hint', 'stdlen-wrap', 'sheet-wrap'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById('part-res').style.display = 'none';
+  document.getElementById('part-dbg').classList.add('hidden');
+  document.getElementById('no-price-w').style.display = 'none';
+  document.getElementById('pw-override').checked = false;
+  updatePwField();
+}
+
+function buildCF() {
+  let mtFilter;
+  if (curMT === 'area') mtFilter = m => m.kgm2 != null;
+  else if (curMT === 'piece') mtFilter = m => m.mtype === 'PIECE';
+  else mtFilter = m => m.kgm != null;
+  const activeCats = new Set(MATS.filter(mtFilter).map(m => m.cat));
+  activeCats.add('all');
+  document.getElementById('cat-filter').innerHTML = CATS.filter(c => activeCats.has(c.id)).map(c => `<div class="cat-btn ${c.id === curC ? 'active' : ''}" onclick="setC('${c.id}')">${c.label}</div>`).join('');
+}
+function setC(id) { curC = id; buildCF(); searchMat(document.getElementById('mat-search').value); }
+function setMType(t) {
+  curMT = t;
+  ['linear', 'area', 'piece'].forEach(x => { document.getElementById('dims-' + x).style.display = x === t ? '' : 'none'; document.getElementById('mt-' + x).classList.toggle('active', x === t); });
+  curC = 'all'; document.getElementById('pw-override').checked = false;
+  buildCF(); updatePwField();
+  if (document.getElementById('mat-search').value) searchMat(document.getElementById('mat-search').value);
+  calcPart();
+}
+
+function searchMat(q) {
+  const dd = document.getElementById('mat-dd');
+  let ms = MATS;
+  if (curMT === 'area') ms = ms.filter(m => m.kgm2 != null);
+  if (curMT === 'linear') ms = ms.filter(m => m.kgm != null);
+  if (curMT === 'piece') ms = ms.filter(m => m.mtype === 'PIECE');
+  if (curC && curC !== 'all') ms = ms.filter(m => m.cat === curC);
+  if (q.trim()) { const ql = q.toLowerCase(); ms = ms.filter(m => m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)); }
+  if (!ms.length) { dd.innerHTML = `<div style="padding:10px;color:var(--txtm);font-size:11px">Ничего не найдено</div>`; dd.classList.add('open'); return; }
+  const grp = {}; for (const m of ms) { if (!grp[m.cat]) grp[m.cat] = []; grp[m.cat].push(m); }
+  const multi = Object.keys(grp).length > 1;
+  let html = '';
+  for (const [cid, items] of Object.entries(grp)) {
+    if (multi) html += `<div class="mat-cat-hdr">${CATS.find(c => c.id === cid)?.label || cid}</div>`;
+    html += items.map(m => { const pr = gP(m.id); const ks = m.kgm != null ? `${m.kgm} кг/м` : m.kgm2 != null ? `${m.kgm2} кг/м²` : 'штучно'; return `<div class="mat-opt" onclick="selMat('${m.id}')"><div class="mat-opt-code">${m.code}</div><div class="mat-opt-name">${m.name}</div><div class="mat-opt-meta"><span>${ks}</span>${pr ? `<span style="color:var(--green)">₽${fm(pr.price)}/т</span>` : `<span style="color:var(--red)">⚠ нет цены</span>`}</div></div>`; }).join('');
+  }
+  dd.innerHTML = html; dd.classList.add('open');
+}
+
+function selMat(id) {
+  selM = MATS.find(m => m.id === id);
+  document.getElementById('mat-search').value = selM.code;
+  document.getElementById('mat-dd').classList.remove('open');
+  showSel();
+  if (selM.mtype === 'PIECE') setMType('piece');
+  else if (selM.kgm2 != null && selM.kgm == null) setMType('area');
+  else updatePwField();
+  const sw = document.getElementById('stdlen-wrap'), sb = document.getElementById('stdlen-btns');
+  if (selM.sl?.length) { sw.style.display = 'block'; sb.innerHTML = selM.sl.map(l => `<div class="quick-btn" onclick="apL(${l})">${fm(l)} мм</div>`).join(''); document.getElementById('hint-std').textContent = `Стандартные: ${selM.sl.map(l => fm(l) + ' мм').join(', ')}`; } else { sw.style.display = 'none'; document.getElementById('hint-std').textContent = ''; }
+  const fw = document.getElementById('sheet-wrap'), fb = document.getElementById('sheet-btns');
+  if (selM.sf?.length) { fw.style.display = 'block'; fb.innerHTML = selM.sf.map(([w, h]) => `<div class="quick-btn" onclick="apS(${w},${h})">${fm(w)}×${fm(h)}</div>`).join(''); } else fw.style.display = 'none';
+  const rems = REMS.filter(r => r.mid === id), re = document.getElementById('rem-hint');
+  if (rems.length) { re.style.display = 'block'; re.innerHTML = rems.map(r => { const desc = r.length ? `Остаток ${fm(r.length)} мм` : `Обрезь ${fm(r.width)}×${fm(r.height)} мм`; return `<div class="remnant-option" onclick='useR(${JSON.stringify(r)})'><div class="remnant-title">♻️ ${desc}</div><div class="text-xs text-muted">${r.note}</div></div>`; }).join(''); } else re.style.display = 'none';
+  calcPart();
+}
+function showSel() {
+  const pr = gP(selM.id);
+  const ks = selM.kgm != null ? `${selM.kgm} кг/м` : selM.kgm2 != null ? `${selM.kgm2} кг/м²` : 'штучно';
+  const el = document.getElementById('mat-sel');
+  el.style.display = 'block';
+  el.innerHTML = `<strong style="color:var(--txt)">${selM.name}</strong> <span style="color:var(--txts)">· ${ks}</span>` + (pr ? ` · <span style="color:var(--green)">₽${fm(pr.price)}/т (${pr.sup})</span>` : ` · <span style="color:var(--red)">⚠ нет цены</span>`);
+}
+function apL(mm) { document.getElementById('p-len').value = mm; calcPart(); }
+function apS(w, h) { document.getElementById('p-w').value = w; document.getElementById('p-h').value = h; calcPart(); }
+function useR(r) { if (r.length) { document.getElementById('p-len').value = r.length; setMType('linear'); } else { document.getElementById('p-w').value = r.width; document.getElementById('p-h').value = r.height; setMType('area'); } calcPart(); }
+
+function gFP() { const qm = { linear: 'p-qty', area: 'p-qty-a', piece: 'p-qty-p' }; return { mtype: curMT, len: parseFloat(document.getElementById('p-len').value) || 0, qty: parseInt(document.getElementById(qm[curMT]).value) || 1, w: parseFloat(document.getElementById('p-w').value) || 0, h: parseFloat(document.getElementById('p-h').value) || 0, pw: getPw() }; }
+
+function calcPart() {
+  if (!selM) return;
+  const p = gFP();
+  const { wpu, tot, pm2, dbg: d } = cPW({ ...p, mid: selM.id }, selM);
+  const pr = gP(selM.id);
+  const { cost, d: cd } = cCost(tot, pr);
+  const re = document.getElementById('part-res');
+  if (!tot && p.mtype !== 'piece') { re.style.display = 'none'; return; }
+  re.style.display = 'block';
+  document.getElementById('res-w').textContent = `${tot.toFixed(2)} кг`;
+  document.getElementById('res-p').textContent = pm2 > 0 ? `${pm2.toFixed(3)} м²` : '—';
+  document.getElementById('res-c').textContent = pr ? `₽${fm(Math.round(cost))}` : '—';
+  document.getElementById('res-note').textContent = pr ? `${pr.sup}: ₽${fm(pr.price)}/т` : '';
+  document.getElementById('no-price-w').style.display = pr ? 'none' : 'block';
+  const de = document.getElementById('part-dbg');
+  if (dbg) { de.classList.remove('hidden'); de.innerHTML = [...d, cd].join('<br>'); } else de.classList.add('hidden');
+}
+
+function confirmPart() {
+  if (!selM) { toast('Выберите материал', 'error'); return; }
+  const f = gFP();
+  if (f.mtype === 'linear' && !f.len) { toast('Введите длину', 'error'); return; }
+  if (f.mtype === 'area' && (!f.w || !f.h)) { toast('Введите ширину и высоту', 'error'); return; }
+  if (f.mtype === 'piece') {
+    const hasDefault = document.getElementById('pw-default').style.display !== 'none';
+    const overriding = document.getElementById('pw-override').checked;
+    if (!hasDefault && !f.pw) { toast('Введите массу 1 шт', 'error'); return; }
+    if (hasDefault && overriding && !f.pw) { toast('Введите массу или снимите флажок', 'error'); return; }
+  }
+  const a = asms.find(a => a.id === curA); if (!a) return;
+  const pd = { mid: selM.id, name: document.getElementById('p-name').value || '', mtype: f.mtype, len: f.len, qty: f.qty, w: f.w, h: f.h, pw: f.pw, partCategory: curEP ? undefined : _curPartCategory };
+  if (curEP) {
+    const i = a.parts.findIndex(p => p.id === curEP);
+    if (i !== -1) {
+      const existingPart = a.parts[i];
+      a.parts[i] = { ...existingPart, ...pd };
+
+      // AI replace flow: call api and update aiStatus
+      if (_aiReplaceAid && _aiReplacePid === curEP && existingPart.aiGenerated) {
+        const remember = document.getElementById('ai-remember') && document.getElementById('ai-remember').checked;
+        a.parts[i].aiStatus = 'replaced';
+        const partId = curEP;
+        fetch('/api/parts/' + partId + '/ai-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('erp_token') || '') },
+          body: JSON.stringify({ action: 'replaced', materialDefinitionId: selM.id, materialName: selM.name, rememberAlias: !!remember }),
+        }).then(r => r.ok ? null : r.json().then(d => toast(d.error || 'AI sync ошибка', 'error'))).catch(() => {});
+      }
+    }
+    toast('Деталь обновлена', 'success');
+  } else {
+    a.parts.push({ id: 'pt' + nP++, ...pd, partCategory: _curPartCategory });
+    toast(_curPartCategory === 'FASTENER' ? 'Метиз добавлен' : 'Деталь добавлена', 'success');
+  }
+  closeModal(); refresh(); saveDraft();
+}
+
+// ─── COMMIT REVISION ──────────────────────────────────────────────────────────
+
+async function commitRevision() {
+  const r = cAll();
+  if (asms.every(a => !a.parts.length)) { toast('Добавьте хотя бы одну деталь', 'error'); return; }
+  if (r.ws.length && !confirm(`Предупреждения:\n${r.ws.join('\n')}\n\nВсё равно создать?`)) return;
+  try {
+    if (!_currentOrderId) {
+      const num = document.getElementById('order-num').value.trim();
+      const customer = document.getElementById('order-customer').value.trim();
+      const title = document.getElementById('order-title').value.trim();
+      if (!num || !customer) { toast('Заполните № заказа и клиента', 'error'); return; }
+      const order = await ERPStore.createOrder({ orderNumber: num, customerName: customer, title, description: null });
+      _currentOrderId = order.id;
+      history.replaceState(null, '', 'simulator.html?orderId=' + encodeURIComponent(order.id));
+    }
+    showLoader(true);
+    const revision = await ERPStore.syncAndRevise(_currentOrderId, asms, null, _asmCoatings);
+    localStorage.removeItem(DRAFT_KEY);
+    showLoader(false);
+    const tW = revision.calculation?.totalWeightKg || r.tW;
+    const revNum = revision.revisionNumber;
+    toast(`Ревизия #${revNum} зафиксирована — ${f3(tW / 1000)} т`, 'success');
+    const _rcEl = document.getElementById('rev-count'); if (_rcEl) _rcEl.textContent = revNum;
+    const revTag = document.getElementById('order-rev-tag');
+    revTag.style.display = ''; revTag.textContent = `Rev ${revNum}`;
+    setTimeout(() => { window.location.href = 'orders.html'; }, 1500);
+  } catch(e) {
+    showLoader(false);
+    toast('Ошибка: ' + e.message, 'error');
+    console.error('[ERP] commitRevision', e);
+  }
+}
+
+// ─── REVISIONS / COMPARE ──────────────────────────────────────────────────────
+
+function renderRevs() {
+  const el = document.getElementById('revs-list');
+  if (!revs.length) { el.innerHTML = `<div class="card"><div class="empty"><div class="icon">📋</div>Ревизий пока нет</div></div>`; return; }
+  el.innerHTML = revs.slice().reverse().map(rev => {
+    const isL = rev.num === revs.length;
+    const ap = rev.asms.flatMap(a => a.parts);
+    return `<div class="card mb-16"><div class="card-header"><div class="gap-12"><div style="font-weight:700;font-size:14px">Rev ${rev.num}</div>
+      <span class="badge ${isL ? 's-approved' : 's-superseded'}">${isL ? 'актуальная' : 'вытеснена'}</span>
+      <span class="text-muted text-xs">${rev.on} · ${new Date(rev.at).toLocaleString('ru')}</span></div>
+      <div class="gap-8"><span class="chip-w">${f3(rev.tW / 1000)} т</span><span class="chip-p">${rev.tP.toFixed(1)} м²</span><span class="chip-c">₽${fm(Math.round(rev.tC))}</span>
+      ${revs.length > 1 ? `<button class="btn btn-secondary btn-sm" onclick="cmpWith(${rev.num})">Сравнить</button>` : ''}</div></div>
+    <div style="padding:10px 14px"><table><thead><tr><th>Материал</th><th>Деталь</th><th>Размеры</th><th>Кол.</th><th>кг/шт</th><th>кг×узел</th><th>Покраска</th><th>₽/т</th><th>Сумма</th></tr></thead>
+    <tbody>${ap.map(p => `<tr><td><span class="mc">${p.sn.mc}</span></td><td class="text-sm">${p.name || '—'}</td><td class="mv">${fmtD(p)}</td><td class="mv">${p.qty} шт</td><td class="mv">${p.sn.wpu.toFixed(2)} кг</td><td><span class="chip-w">${p.sn.aT.toFixed(2)} кг</span></td><td>${p.sn.pT > 0 ? `<span class="chip-p">${p.sn.pT.toFixed(2)} м²</span>` : '—'}</td><td class="mv">${p.sn.pp ? '₽' + fm(p.sn.pp) : '—'}</td><td>${p.sn.cost ? `<span class="chip-c">₽${fm(Math.round(p.sn.cost))}</span>` : '—'}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+  }).join('');
+}
+
+function updCmpSel() { const opts = revs.map(r => `<option value="${r.num}">Rev ${r.num} — ${f3(r.tW / 1000)} т</option>`).join(''); document.getElementById('cmp-a').innerHTML = opts; document.getElementById('cmp-b').innerHTML = opts; if (revs.length >= 2) { document.getElementById('cmp-a').value = revs[revs.length - 2].num; document.getElementById('cmp-b').value = revs[revs.length - 1].num; } }
+function cmpWith(num) { updCmpSel(); const o = revs.find(r => r.num !== num); if (o) document.getElementById('cmp-a').value = o.num; document.getElementById('cmp-b').value = num; go('compare'); runCmp(); }
+function runCmp() {
+  const aN = parseInt(document.getElementById('cmp-a').value), bN = parseInt(document.getElementById('cmp-b').value);
+  const rA = revs.find(r => r.num === aN), rB = revs.find(r => r.num === bN);
+  if (!rA || !rB || rA === rB) { document.getElementById('cmp-result').innerHTML = `<div style="color:var(--red)">Выберите две разные ревизии</div>`; return; }
+  const dW = r4(rB.tW - rA.tW), dC = r4(rB.tC - rA.tC), dP = r4(rB.tP - rA.tP);
+  const sg = (v, u = '') => v === 0 ? '—' : `<span class="${v > 0 ? 'diff-pos' : 'diff-neg'}">${v > 0 ? '+' : ''}${Math.abs(v) > 100 ? fm(Math.round(v)) : v.toFixed(3)}${u}</span>`;
+  const bA = {}, bB = {};
+  for (const p of rA.asms.flatMap(a => a.parts)) bA[p.sn.mc + '|' + (p.name || '')] = p;
+  for (const p of rB.asms.flatMap(a => a.parts)) bB[p.sn.mc + '|' + (p.name || '')] = p;
+  const ks = new Set([...Object.keys(bA), ...Object.keys(bB)]);
+  const rows = [...ks].map(k => { const a = bA[k], b = bB[k]; if (!a) return { st: 'added', k, b }; if (!b) return { st: 'removed', k, a }; const dw = r4((b.sn.aT || 0) - (a.sn.aT || 0)), dc = r4((b.sn.cost || 0) - (a.sn.cost || 0)), dp = r4((b.sn.pT || 0) - (a.sn.pT || 0)); if (!dw && !dc && !dp) return null; return { st: 'changed', k, a, b, dw, dc, dp }; }).filter(Boolean);
+  document.getElementById('cmp-result').innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Вес</div><div style="font-size:20px;font-weight:800" class="${dW > 0 ? 'diff-pos' : dW < 0 ? 'diff-neg' : ''}">${dW > 0 ? '+' : ''}${f3(dW / 1000)} т</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Покраска</div><div style="font-size:20px;font-weight:800" class="${dP > 0 ? 'diff-pos' : dP < 0 ? 'diff-neg' : ''}">${dP > 0 ? '+' : ''}${dP.toFixed(2)} м²</div></div></div>
+    <div class="card"><div class="card-body" style="text-align:center"><div style="font-size:9px;color:var(--txtm);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Δ Стоимость</div><div style="font-size:20px;font-weight:800" class="${dC > 0 ? 'diff-pos' : dC < 0 ? 'diff-neg' : ''}">${dC > 0 ? '+' : ''}₽${fm(Math.round(Math.abs(dC)))}</div></div></div>
+  </div>
+  <div class="card"><div class="card-header"><div class="card-title">Diff (${rows.length} изменений)</div></div>
+  ${!rows.length ? '<div class="empty">Позиции не изменились</div>' : `<table><thead><tr><th>Позиция</th><th>Статус</th><th>Масса A</th><th>Масса B</th><th>Δ масса</th><th>Δ покраска</th><th>Δ стоимость</th></tr></thead><tbody>
+  ${rows.map(r => { const l = r.k.replace('|', ' · '); if (r.st === 'added') return `<tr class="diff-row added"><td class="mv">${l}</td><td><span class="badge s-approved">добавлена</span></td><td>—</td><td class="mv">${r.b.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td class="diff-neg">+₽${fm(Math.round(r.b.sn.cost || 0))}</td></tr>`; if (r.st === 'removed') return `<tr class="diff-row removed"><td class="mv">${l}</td><td><span class="badge s-cancelled">удалена</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} кг</td><td>—</td><td>—</td><td>—</td><td class="diff-pos">−₽${fm(Math.round(r.a.sn.cost || 0))}</td></tr>`; return `<tr class="diff-row changed"><td class="mv">${l}</td><td><span class="badge s-awaiting">изменена</span></td><td class="mv">${r.a.sn.aT.toFixed(2)} кг</td><td class="mv">${r.b.sn.aT.toFixed(2)} кг</td><td>${sg(r4(r.dw / 1000), 'т')}</td><td>${sg(r.dp, 'м²')}</td><td>${sg(Math.round(r.dc), '₽')}</td></tr>`; }).join('')}</tbody></table>`}</div>`;
+}
+
+// ─── MATERIALS & PRICES PAGES ─────────────────────────────────────────────────
+
+function renderMats(q = '') {
+  const ql = q.toLowerCase();
+  const rows = MATS.filter(m => !ql || m.code.toLowerCase().includes(ql) || m.name.toLowerCase().includes(ql) || m.gost.includes(ql)).map(m => `<tr><td class="mc">${m.code}</td><td>${m.name}</td><td><span class="text-xs text-muted">${CATS.find(c => c.id === m.cat)?.label || m.cat}</span></td><td class="mv">${m.kgm ?? '—'}</td><td class="mv">${m.kgm2 ?? '—'}</td><td class="mv" style="color:var(--amber)">${m.pm ?? 'по размеру'}</td><td class="mv text-muted">${m.gost}</td></tr>`).join('');
+  document.getElementById('mat-tbody').innerHTML = rows || `<tr><td colspan="7"><div class="empty">Ничего не найдено</div></td></tr>`;
+}
+function renderPrices() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('prices-tbody').innerHTML = PRICES.map(p => { const mat = MATS.find(m => m.id === p.mid); const act = p.from <= today && (!p.to || p.to >= today); return `<tr><td><span class="mc">${mat?.code}</span><br><span class="text-xs text-muted">${mat?.name}</span></td><td>${p.sup}</td><td class="mv" style="font-weight:700;color:${act ? 'var(--green)' : 'var(--txtm)'}">${fm(p.price)}</td><td class="mv text-muted">${p.from}</td><td class="mv text-muted">${p.to || '—'}</td><td><span class="badge ${act ? 's-approved' : 's-cancelled'}">${act ? 'актуальная' : 'истекла'}</span></td></tr>`; }).join('');
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+
+function go(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x => x.classList.remove('on'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelectorAll('.ni').forEach(x => { if (x.getAttribute('onclick')?.includes(`'${p}'`)) x.classList.add('on'); });
+  if (p === 'revisions') renderRevs();
+  if (p === 'compare') { updCmpSel(); document.getElementById('cmp-result').innerHTML = ''; }
+  if (p === 'materials') renderMats();
+  if (p === 'prices') renderPrices();
+  if (p === 'files') {
+    const el = document.getElementById('bc-order-files');
+    if (el) el.textContent = document.getElementById('bc-order')?.textContent || 'Заказ';
+    loadFiles();
+  }
+}
+
+function toggleDebug() {
+  dbg = !dbg;
+  const btn = document.getElementById('dbg-btn');
+  btn.style.color = dbg ? 'var(--amber)' : '';
+  btn.style.borderColor = dbg ? 'rgba(245,158,11,.4)' : '';
+  refresh();
+  if (document.getElementById('part-res').style.display !== 'none') calcPart();
+}
+
+// ─── TEMPLATE PICKER ──────────────────────────────────────────────────────────
+
+let _tmplList = [], _tmplPickerAid = null;
+
+async function openTmplPicker(aid) {
+  _tmplPickerAid = aid;
+  document.getElementById('tp-preview').innerHTML = '<span style="color:var(--txts)">Выберите шаблон...</span>';
+  document.getElementById('tmpl-picker-bg').classList.add('open');
+  if (!_tmplList.length) {
+    try { _tmplList = await ERPStore.listTemplates(); } catch(e) { toast('Ошибка загрузки шаблонов: ' + e.message, 'error'); closeTmplPicker(); return; }
+  }
+  const sel = document.getElementById('tp-sel');
+  if (!_tmplList.length) { sel.innerHTML = '<option value="">Нет шаблонов</option>'; }
+  else { sel.innerHTML = _tmplList.map(t => `<option value="${t.id}">${t.code} — ${t.name}</option>`).join(''); previewTmpl(sel.value); }
+  document.getElementById('tp-mult').value = 1;
+}
+function closeTmplPicker() { document.getElementById('tmpl-picker-bg').classList.remove('open'); }
+
+function _flattenNodesWithMeta(nodes, templateId, templateCode, multiplier, out, parentPath, depth, parentSortSeg) {
+  nodes.forEach((node, idx) => {
+    const seg = String(idx + 1).padStart(3, '0');
+    const sortPath = parentSortSeg ? `${parentSortSeg}.${seg}` : seg;
+    const path = [...parentPath, { id: node.id, label: node.name }];
+    const effQty = (node.qty || 1) * multiplier;
+    for (const p of (node.parts || [])) {
+      out.push({ ...p, _effQty: effQty, bomTemplateCode: templateCode, bomGroupKey: `${templateId}:${node.id}`, bomGroupLabel: node.name, bomDepth: depth, bomPath: path, bomSortPath: sortPath });
+    }
+    if (node.children?.length) _flattenNodesWithMeta(node.children, templateId, templateCode, effQty, out, path, depth + 1, sortPath);
+  });
+  return out;
+}
+
+async function previewTmpl(id) {
+  if (!id) return;
+  const box = document.getElementById('tp-preview');
+  box.innerHTML = '<span style="color:var(--txts)">Загрузка...</span>';
+  try {
+    const t = await ERPStore.getTemplate(id);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, 1, [], [], 0, '');
+    if (!flat.length) { box.innerHTML = '<div style="color:var(--txts)">Шаблон пустой</div>'; return; }
+    const groups = new Map();
+    for (const p of flat) { if (!groups.has(p.bomGroupKey)) groups.set(p.bomGroupKey, { label: p.bomGroupLabel, depth: p.bomDepth, sortPath: p.bomSortPath, parts: [] }); groups.get(p.bomGroupKey).parts.push(p); }
+    const sorted = [...groups.values()].sort((a, b) => a.sortPath.localeCompare(b.sortPath));
+    const MTYPE = { LINEAR: '📏', AREA: '⬜', PIECE: '🔩' };
+    let html = `<div style="font-weight:700;margin-bottom:6px;font-size:11.5px;color:var(--txt)">${t.code} — ${t.name}</div>`;
+    for (const grp of sorted) {
+      const indent = grp.depth * 10;
+      html += `<div style="padding:2px 0 1px ${indent}px;font-weight:600;font-size:11px;color:var(--txts)">▸ ${grp.label}</div>`;
+      for (const p of grp.parts) {
+        const mat = MATS.find(m => m.id === p.materialDefinitionId);
+        let dims = '';
+        if (p.measurementType === 'LINEAR' && p.length) dims = ` · ${fm(p.length)} мм`;
+        else if (p.measurementType === 'AREA' && p.sheetWidth) dims = ` · ${fm(p.sheetWidth)}×${fm(p.sheetHeight)} мм`;
+        const totalQty = (p.quantity || 1) * p._effQty;
+        html += `<div style="padding:2px 0 2px ${indent + 12}px;font-size:10.5px;color:var(--txtm)">${MTYPE[p.measurementType] || ''} <span style="font-family:'DM Mono',monospace;color:var(--cyan)">${mat ? mat.code : '?'}</span>${dims} → <strong style="color:var(--txt)">${totalQty} шт</strong></div>`;
+      }
+    }
+    box.innerHTML = html;
+  } catch(e) { box.innerHTML = `<span style="color:var(--red)">Ошибка: ${e.message}</span>`; }
+}
+
+async function applyTmplPicker() {
+  const tmplId = document.getElementById('tp-sel').value;
+  const mult = parseInt(document.getElementById('tp-mult').value) || 1;
+  if (!tmplId || !_tmplPickerAid) return;
+  const a = asms.find(a => a.id === _tmplPickerAid);
+  if (!a) return;
+  const btn = document.getElementById('tp-apply-btn');
+  btn.disabled = true; btn.textContent = 'Вставка...';
+  try {
+    const t = await ERPStore.getTemplate(tmplId);
+    const flat = _flattenNodesWithMeta(t.nodes || [], t.id, t.code, mult, [], [], 0, '');
+    if (!flat.length) { toast('Шаблон пустой', 'warning'); return; }
+    const MTYPE_MAP = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
+    let added = 0;
+    for (const p of flat) {
+      const mat = MATS.find(m => m.id === p.materialDefinitionId);
+      if (!mat) continue;
+      a.parts.push({ id: 'pt' + nP++, mid: p.materialDefinitionId, name: p.notes || '', mtype: MTYPE_MAP[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : (mat.unitKg || null), qty: (p.quantity || 1) * p._effQty, bomTemplateCode: p.bomTemplateCode, bomTemplateId: t.id, bomTemplateVersion: t.version, bomGroupKey: p.bomGroupKey, bomGroupLabel: p.bomGroupLabel, bomDepth: p.bomDepth, bomPath: p.bomPath, bomSortPath: p.bomSortPath });
+      added++;
+    }
+    closeTmplPicker(); refresh(); saveDraft();
+    toast(`Шаблон «${t.code}» вставлен: ${added} деталей`, 'success');
+  } catch(e) { toast('Ошибка: ' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '📦 Вставить детали'; }
+}
+
+function toggleBomGroup(asmId, groupKey) {
+  const k = `${asmId}:${groupKey}`;
+  if (_bomCollapsed.has(k)) _bomCollapsed.delete(k); else _bomCollapsed.add(k);
+  renderAsms();
+}
+
+// ─── API → SIM MAPPERS ────────────────────────────────────────────────────────
+
+function _apiRevToSim(rev, orderNum, customerName) {
+  const calc = rev.calculation || {};
+  const MTYPE = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
+  const asmMap = new Map();
+  for (const p of (rev.parts || [])) {
+    const k = p.assemblyName || '—';
+    if (!asmMap.has(k)) asmMap.set(k, { id: k, name: k, qty: 1, parts: [] });
+    asmMap.get(k).parts.push({ id: p.id || '', name: p.name || '', qty: p.quantity || 1, mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, sn: { mc: p.materialCode, mn: p.materialName, wpu: Number(p.calculatedWeightPerUnit || 0), tot: Number(p.totalWeight || 0), aT: Number(p.totalWeight || 0), pT: Number(p.paintAreaM2 || 0), pp: p.pricePerTon != null ? Number(p.pricePerTon) : null, cost: Number(p.materialCost || 0), sup: p.supplierName || null } });
+  }
+  return { num: rev.revisionNumber, at: rev.createdAt, tW: Number(calc.totalWeightKg || 0), tC: Number(calc.totalCost || 0), tP: Number(calc.totalPaintM2 || 0), asms: [...asmMap.values()], on: orderNum || '', cu: customerName || '', ws: [] };
+}
+
+function _apiAsmsToSim(apiAsms) {
+  const MTYPE = { LINEAR: 'linear', AREA: 'area', PIECE: 'piece' };
+  return (apiAsms || []).map(a => ({ id: a.id, name: a.name, qty: a.qty || 1, parts: (a.parts || []).map(p => {
+    const md = p.materialDefinition;
+    if (md && !_archivedMats[md.id]) {
+      const geo = md.geometry || {};
+      _archivedMats[md.id] = { id: md.id, code: md.code, name: md.name, cat: 'uncategorized',
+        kgm: geo.theoreticalWeightPerMeter ? parseFloat(geo.theoreticalWeightPerMeter) : null,
+        kgm2: geo.weightPerSquareMeter ? parseFloat(geo.weightPerSquareMeter) : null,
+        pm: geo.paintSurfacePerMeter ? parseFloat(geo.paintSurfacePerMeter) : null,
+        sl: null, sf: null, mtype: (geo.measurementType || 'LINEAR').toLowerCase(),
+        unitKg: geo.unitWeightKg != null ? parseFloat(geo.unitWeightKg) : null,
+        domain: md.materialDomain || 'STRUCTURAL',
+        archived: !md.isActive || !!md.deletedAt,
+      };
+    }
+    return { id: p.id, mid: p.materialDefinitionId || null, name: p.name || '', mtype: MTYPE[p.measurementType] || 'linear', len: p.length != null ? Number(p.length) : null, w: p.sheetWidth != null ? Number(p.sheetWidth) : null, h: p.sheetHeight != null ? Number(p.sheetHeight) : null, pw: p.directWeightKg != null ? Number(p.directWeightKg) : null, qty: p.quantity || 1, bomTemplateCode: p.bomTemplateCode || null, bomTemplateId: p.bomTemplateId || null, bomTemplateVersion: p.bomTemplateVersion != null ? p.bomTemplateVersion : null, bomGroupKey: p.bomGroupKey || null, bomGroupLabel: p.bomGroupLabel || null, bomDepth: p.bomDepth != null ? p.bomDepth : null, bomPath: p.bomPath || null, bomSortPath: p.bomSortPath || null, partCategory: p.partCategory || 'MATERIAL', aiGenerated: p.aiGenerated || false, aiRawText: p.aiRawText || null, aiNormResultId: p.aiNormResultId || null, aiConfidence: p.aiConfidence ?? null, aiMatchMethod: p.aiMatchMethod || null, aiStatus: p.aiStatus || null };
+  }) }));
+}
+
+// ─── CLOSE DROPDOWNS ON CLICK OUTSIDE ────────────────────────────────────────
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.mat-search-wrap')) document.getElementById('mat-dd').classList.remove('open');
+});
+
+// ─── FILES ────────────────────────────────────────────────────────────────────
+
+const FILE_ICONS = { PDF: '📄', DWG: '📐', DXF: '📐', STEP: '📦', IMAGE: '🖼', OTHER: '📎' };
+
+function triggerFileUpload() {
+  document.getElementById('file-input').click();
+}
+
+// ─── DRAG-AND-DROP ROW REORDERING ─────────────────────────────────────────────
+
+let _dragSrcRow = null;
+
+function rowDragStart(e) {
+  _dragSrcRow = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', ''); // required for Firefox
+  setTimeout(() => _dragSrcRow && _dragSrcRow.classList.add('row-dragging'), 0);
+}
+
+function rowDragOver(e) {
+  if (!_dragSrcRow) return;
+  const tgt = e.currentTarget;
+  if (tgt === _dragSrcRow) return;
+  if (tgt.closest('tbody') !== _dragSrcRow.closest('tbody')) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const mid = tgt.getBoundingClientRect().top + tgt.getBoundingClientRect().height / 2;
+  tgt.classList.remove('drag-above', 'drag-below');
+  tgt.classList.add(e.clientY < mid ? 'drag-above' : 'drag-below');
+}
+
+function rowDragLeave(e) {
+  e.currentTarget.classList.remove('drag-above', 'drag-below');
+}
+
+function rowDragEnd() {
+  if (_dragSrcRow) _dragSrcRow.classList.remove('row-dragging');
+  document.querySelectorAll('.drag-above,.drag-below').forEach(r => r.classList.remove('drag-above','drag-below'));
+  _dragSrcRow = null;
+}
+
+async function rowDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  const above = tgt.classList.contains('drag-above');
+  tgt.classList.remove('drag-above', 'drag-below');
+  if (!_dragSrcRow || tgt === _dragSrcRow) return;
+  const tbody = _dragSrcRow.closest('tbody');
+  if (!tbody || tgt.closest('tbody') !== tbody) return;
+
+  if (above) tgt.before(_dragSrcRow);
+  else tgt.after(_dragSrcRow);
+
+  const asmId = _dragSrcRow.dataset.asmid;
+  const ids = [...tbody.querySelectorAll('tr[data-partid]')].map(r => r.dataset.partid);
+
+  const asm = asms.find(a => a.id === asmId);
+  if (asm) ids.forEach((id, idx) => { const p = asm.parts.find(p => p.id === id); if (p) p.position = idx; });
+
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/assemblies/${asmId}/parts/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ ids }),
+    });
+    if (!r.ok) throw new Error('Ошибка сохранения');
+  } catch(ex) {
+    toast(ex.message, 'error');
+    renderAsms();
+  }
+}
+
+async function lkmDrop(e) {
+  e.preventDefault();
+  const tgt = e.currentTarget;
+  const above = tgt.classList.contains('drag-above');
+  tgt.classList.remove('drag-above', 'drag-below');
+  if (!_dragSrcRow || tgt === _dragSrcRow) return;
+  const tbody = _dragSrcRow.closest('tbody');
+  if (!tbody || tgt.closest('tbody') !== tbody) return;
+
+  if (above) tgt.before(_dragSrcRow);
+  else tgt.after(_dragSrcRow);
+
+  const asmId = _dragSrcRow.dataset.asmid;
+  const ids = [...tbody.querySelectorAll('tr[data-partid]')].map(r => r.dataset.partid);
+
+  // Update local _asmCoatings order
+  if (_asmCoatings[asmId]) {
+    const reordered = ids.map(id => _asmCoatings[asmId].find(c => c.id === id)).filter(Boolean);
+    _asmCoatings[asmId] = reordered;
+  }
+
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/assemblies/${asmId}/coatings/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ ids }),
+    });
+    if (!r.ok) throw new Error('Ошибка сохранения');
+  } catch(ex) {
+    toast(ex.message, 'error');
+    renderAsms();
+  }
+}
+
+async function deleteFile(fileId, title) {
+  if (!confirm('Удалить файл «' + title + '»?')) return;
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch('/api/files/' + fileId, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Ошибка');
+    toast('Файл удалён', 'success');
+    await loadFiles();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+async function uploadFile(input) {
+  if (!input.files.length) return;
+  if (!_currentOrderId) return toast('Сначала сохраните заказ', 'error');
+  const file = input.files[0];
+  input.value = '';
+  document.getElementById('files-uploading').style.display = 'block';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', file.name);
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/files`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: fd,
+    });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
+    toast('Файл загружен', 'success');
+    await loadFiles();
+  } catch(e) {
+    toast('Ошибка загрузки: ' + e.message, 'error');
+  } finally {
+    document.getElementById('files-uploading').style.display = 'none';
+  }
+}
+
+async function loadFiles() {
+  if (!_currentOrderId) return;
+  try {
+    const token = localStorage.getItem('erp_token');
+    const r = await fetch(`/api/orders/${_currentOrderId}/files`, { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      toast('Ошибка загрузки списка файлов: ' + (e.error || r.status), 'error');
+      return;
+    }
+    const files = await r.json();
+    _rpFiles = files;
+    renderFiles(files);
+    if (_rpTab === 'files') renderRightPanel();
+  } catch(e) {
+    toast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+function renderFiles(files) {
+  const badge = document.getElementById('files-count-badge');
+  if (files.length > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = files.length;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  document.getElementById('files-empty').style.display        = files.length === 0 ? 'block' : 'none';
+  document.getElementById('files-upload-hint').style.display  = files.length === 0 ? 'block' : 'none';
+  document.getElementById('files-table-wrap').style.display   = files.length > 0   ? 'block' : 'none';
+
+  document.getElementById('files-tbody').innerHTML = files.map(f => {
+    const v    = f.version;
+    const icon = FILE_ICONS[f.fileType] || '📎';
+    const size = v ? formatFileSize(Number(v.sizeBytes)) : '—';
+    const date = f.attachedAt ? new Date(f.attachedAt).toLocaleDateString('ru-RU') : '—';
+    const url  = v ? v.storageUrl : null;
+    return `<tr>
+      <td style="text-align:center;font-size:16px">${icon}</td>
+      <td>
+        <div style="font-weight:500;font-size:12px">${esc(f.title)}</div>
+        ${f.description ? `<div style="font-size:10px;color:var(--txts)">${esc(f.description)}</div>` : ''}
+        ${v ? `<div style="font-size:10px;color:var(--txtm)">${esc(v.originalName)}</div>` : ''}
+      </td>
+      <td><span class="tg">${f.fileType}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txts)">${size}</td>
+      <td style="font-size:11px;color:var(--txts)">${date}</td>
+      <td style="text-align:right;white-space:nowrap;display:flex;gap:4px;justify-content:flex-end;align-items:center">
+        ${url ? `<a href="${url}" target="_blank" class="abtn" style="text-decoration:none;padding:2px 8px;font-size:10px">↓ Скачать</a>` : ''}
+        <button class="abtn" style="padding:2px 8px;font-size:10px;color:var(--red);border-color:var(--red)" onclick="deleteFile('${f.id}','${esc(f.title)}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024)       return bytes + ' B';
+  if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── KEYBOARD: login on Enter ─────────────────────────────────────────────────
+
+refresh();
+</script>
+<div id="pt-col-picker"></div>

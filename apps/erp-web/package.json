@@ -1,0 +1,25 @@
+{
+  "name": "erp-web",
+  "version": "1.0.0",
+  "description": "MetalPro ERP/MES система",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["erp", "mes", "manufacturing"],
+  "author": "Anton Karneev",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@ai-control/database": "workspace:*",
+    "@ai-control/shared-types": "workspace:*",
+    "@ai-control/auth": "workspace:*",
+    "@ai-control/shared-config": "workspace:*",
+    "bcryptjs": "^3.0.2",
+    "busboy": "^1.6.0",
+    "dotenv": "^16.5.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.20.0"
+  }
+}

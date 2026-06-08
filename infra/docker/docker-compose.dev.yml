@@ -1,0 +1,100 @@
+version: "3.9"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: aicontrol-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-aicontrol}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-aicontrol123}
+      - POSTGRES_DB=${POSTGRES_DB:-aicontrol_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aicontrol}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - aicontrol-net
+    restart: unless-stopped
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: aicontrol-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Asia/Yekaterinburg
+
+      # Аутентификация
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-n8n_admin_2024}
+
+      # База данных PostgreSQL
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-aicontrol_db}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-aicontrol}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-aicontrol123}
+      - DB_POSTGRESDB_SCHEMA=n8n
+
+      # Executions
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-backup:/backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aicontrol-net
+    restart: unless-stopped
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: aicontrol-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - aicontrol-net
+    restart: unless-stopped
+
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aicontrol-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - aicontrol-net
+    restart: unless-stopped
+
+networks:
+  aicontrol-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  n8n_data:
+  qdrant_data:
+  ollama_data:
