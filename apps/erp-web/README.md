@@ -70,6 +70,8 @@ npx prisma migrate deploy
 node server.js
 ```
 
+> **Note:** Этот проект мигрирован в монорепозиторий `ai-control-center`.
+
 ## Переменные окружения
 
 ```
