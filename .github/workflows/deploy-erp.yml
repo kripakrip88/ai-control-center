@@ -55,7 +55,7 @@ jobs:
 
             if [ ! -f .env ]; then
               echo "Creating .env file..."
-              echo 'DATABASE_URL="postgresql://metaluser:metalpass@localhost:5432/erp_metal"' > .env
+              echo 'DATABASE_URL="postgresql://erp_user:ErpMetal2025x@localhost:5432/erp_metal"' > .env
               echo 'NODE_ENV=production' >> .env
             fi
 
