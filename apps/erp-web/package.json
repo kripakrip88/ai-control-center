@@ -12,14 +12,12 @@
   "author": "Anton Karneev",
   "license": "UNLICENSED",
   "dependencies": {
-    "@ai-control/database": "workspace:*",
-    "@ai-control/shared-types": "workspace:*",
-    "@ai-control/auth": "workspace:*",
-    "@ai-control/shared-config": "workspace:*",
+    "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.2",
     "busboy": "^1.6.0",
     "dotenv": "^16.5.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "prisma": "^5.22.0"
   }
 }

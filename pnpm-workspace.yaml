@@ -3,6 +3,12 @@ packages:
   - 'services/*'
   - 'packages/*'
 
+allowBuilds:
+  '@nestjs/core': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+
 catalog:
   # Shared dependencies versions
   '@nestjs/common': '^10.3.0'
