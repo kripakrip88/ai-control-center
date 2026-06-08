@@ -50,8 +50,19 @@ jobs:
             echo "=== Install Dependencies ==="
             pnpm install --frozen-lockfile --prod
 
-            echo "=== Database Migration ==="
+            echo "=== Setup Environment ==="
             cd apps/erp-web
+
+            # Create .env if doesn't exist
+            if [ ! -f .env ]; then
+              echo "Creating .env file..."
+              cat > .env << 'ENVEOF'
+DATABASE_URL="postgresql://metaluser:metalpass@localhost:5432/erp_metal"
+NODE_ENV=production
+ENVEOF
+            fi
+
+            echo "=== Database Migration ==="
             npx prisma migrate deploy
             npx prisma generate
 
