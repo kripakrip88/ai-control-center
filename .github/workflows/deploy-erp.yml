@@ -1,0 +1,62 @@
+name: Deploy ERP to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/erp-web/**'
+      - 'packages/**'
+      - '.github/workflows/deploy-erp.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy ERP to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          command_timeout: 300s
+          script: |
+            set -e
+
+            echo "=== ERP Deployment Started ==="
+
+            # Navigate to monorepo
+            cd /var/www/ai-control-center || {
+              echo "ERROR: Monorepo not found. Creating..."
+              mkdir -p /var/www/ai-control-center
+              cd /var/www/ai-control-center
+              git clone https://github.com/kripakrip88/ai-control-center.git .
+            }
+
+            echo "=== Git Pull ==="
+            git pull origin main
+
+            echo "=== Install Dependencies ==="
+            cd apps/erp-web
+            npm install --production
+
+            echo "=== Database Migration ==="
+            npx prisma migrate deploy
+            npx prisma generate
+
+            echo "=== Restart Service ==="
+            # Check if PM2 process exists
+            if pm2 describe erp-metal > /dev/null 2>&1; then
+              pm2 reload erp-metal
+            else
+              pm2 start server.js --name erp-metal
+              pm2 save
+            fi
+
+            echo "=== Health Check ==="
+            sleep 3
+            curl -sf http://localhost:80/health || curl -sf http://localhost:3000/health || echo "⚠️ Health check failed (service may still be starting)"
+
+            echo "✅ ERP Deployment Complete"

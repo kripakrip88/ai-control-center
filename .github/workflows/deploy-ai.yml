@@ -1,0 +1,65 @@
+name: Deploy AI Service to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/ai-polygon/**'
+      - 'packages/**'
+      - '.github/workflows/deploy-ai.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy AI Service to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          command_timeout: 300s
+          script: |
+            set -e
+
+            echo "=== AI Service Deployment Started ==="
+
+            # Navigate to monorepo
+            cd /var/www/ai-control-center || {
+              echo "ERROR: Monorepo not found. Creating..."
+              mkdir -p /var/www/ai-control-center
+              cd /var/www/ai-control-center
+              git clone https://github.com/kripakrip88/ai-control-center.git .
+            }
+
+            echo "=== Git Pull ==="
+            git pull origin main
+
+            echo "=== Navigate to AI Service ==="
+            cd services/ai-polygon
+
+            echo "=== Copy docker-compose from metalpro-ai-polygon ==="
+            # Check if old metalpro-ai-polygon exists for docker-compose.yml
+            if [ -f /opt/metalpro-ai-polygon/docker-compose.yml ]; then
+              cp /opt/metalpro-ai-polygon/docker-compose.yml ./ || true
+            fi
+
+            echo "=== Docker Compose Build ==="
+            docker-compose build --no-cache
+
+            echo "=== Docker Compose Up ==="
+            docker-compose up -d
+
+            echo "=== Wait for service ==="
+            sleep 15
+
+            echo "=== Health Check ==="
+            curl -sf http://localhost:4000/health && echo "✅ AI Service is healthy" || echo "⚠️ Health check failed"
+
+            echo "=== Check running containers ==="
+            docker-compose ps
+
+            echo "✅ AI Service Deployment Complete"

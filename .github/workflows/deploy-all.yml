@@ -1,0 +1,70 @@
+name: Deploy All Services
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy-all" to confirm full deployment'
+        required: true
+        default: ''
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy-all" ]; then
+            echo "❌ Deployment cancelled. You must type 'deploy-all' to confirm."
+            exit 1
+          fi
+          echo "✅ Confirmation validated"
+
+  deploy-erp:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy ERP
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /var/www/ai-control-center
+            git pull origin main
+            cd apps/erp-web
+            npm install --production
+            npx prisma migrate deploy
+            npx prisma generate
+            pm2 reload erp-metal || pm2 start server.js --name erp-metal
+            pm2 save
+
+  deploy-ai:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy AI Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /var/www/ai-control-center/services/ai-polygon
+            git pull origin main
+            docker-compose up --build -d
+            sleep 10
+            curl -sf http://localhost:4000/health
+
+  summary:
+    needs: [deploy-erp, deploy-ai]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "✅ Full deployment complete!"
+          echo "- ERP Service: deployed"
+          echo "- AI Service: deployed"
