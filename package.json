@@ -1,0 +1,38 @@
+{
+  "name": "ai-control-center",
+  "version": "1.0.0",
+  "description": "Unified monorepo for ERP, AI services, and Telegram assistants",
+  "private": true,
+  "author": "Anton Karneev",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/**' --filter './services/ai-polygon' dev",
+    "dev:erp": "pnpm --filter erp-web dev",
+    "dev:ai": "pnpm --filter ai-polygon dev",
+    "build": "pnpm --recursive build",
+    "build:erp": "pnpm --filter erp-web build",
+    "build:ai": "pnpm --filter ai-polygon build",
+    "test": "pnpm --recursive test",
+    "lint": "pnpm --recursive lint",
+    "db:generate": "pnpm --filter @ai-control/database prisma:generate",
+    "db:migrate": "pnpm --filter @ai-control/database prisma:migrate",
+    "db:studio": "pnpm --filter @ai-control/database prisma:studio",
+    "docker:up": "docker-compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.dev.yml up",
+    "docker:down": "docker-compose -f infra/docker/docker-compose.yml down",
+    "docker:build": "docker-compose -f infra/docker/docker-compose.yml build",
+    "docker:logs": "docker-compose -f infra/docker/docker-compose.yml logs -f",
+    "setup": "bash scripts/setup.sh",
+    "clean": "pnpm --recursive clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5",
+    "prettier": "^3.2.5",
+    "eslint": "^8.57.0",
+    "turbo": "^2.0.0"
+  }
+}

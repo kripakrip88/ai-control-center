@@ -1,0 +1,298 @@
+// AI Control Center - Unified Prisma Schema
+// This schema consolidates ERP, AI, and Telegram domains
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// SHARED MODELS (public schema)
+// =============================================================================
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users           User[]
+  orders          Order[]
+  assemblies      Assembly[]
+  parts           Part[]
+  materials       MaterialDefinition[]
+  inventory       InventoryItem[]
+  documents       Document[]
+  extractions     ExtractionResult[]
+  outboxEvents    OutboxEvent[]
+  auditLogs       AuditLog[]
+
+  @@map("companies")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(VIEWER)
+  companyId String   @map("company_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  ENGINEER
+  VIEWER
+}
+
+// =============================================================================
+// ERP DOMAIN
+// =============================================================================
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @map("order_number")
+  status      OrderStatus @default(DRAFT)
+  companyId   String      @map("company_id")
+  customerId  String?     @map("customer_id")
+  totalWeight Float?      @map("total_weight")
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assemblies Assembly[]
+
+  @@unique([companyId, orderNumber])
+  @@index([companyId])
+  @@index([status])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  IN_PRODUCTION
+  COMPLETED
+  CANCELLED
+}
+
+model Assembly {
+  id                String   @id @default(uuid())
+  name              String
+  orderId           String   @map("order_id")
+  parentAssemblyId  String?  @map("parent_assembly_id")
+  companyId         String   @map("company_id")
+  level             Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  order           Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  company         Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parentAssembly  Assembly?  @relation("AssemblyHierarchy", fields: [parentAssemblyId], references: [id])
+  childAssemblies Assembly[] @relation("AssemblyHierarchy")
+  parts           Part[]
+  documents       Document[]
+
+  @@index([orderId])
+  @@index([companyId])
+  @@index([parentAssemblyId])
+  @@map("assemblies")
+}
+
+model Part {
+  id                    String   @id @default(uuid())
+  assemblyId            String   @map("assembly_id")
+  materialDefinitionId  String   @map("material_definition_id")
+  companyId             String   @map("company_id")
+  quantity              Int
+  position              Int?
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  assembly           Assembly           @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  materialDefinition MaterialDefinition @relation(fields: [materialDefinitionId], references: [id])
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([assemblyId])
+  @@index([materialDefinitionId])
+  @@index([companyId])
+  @@map("parts")
+}
+
+model MaterialDefinition {
+  id          String       @id @default(uuid())
+  name        String
+  profileType String       @map("profile_type")
+  type        MaterialType @default(RAW_MATERIAL)
+  companyId   String       @map("company_id")
+  unitWeight  Float?       @map("unit_weight")
+  specs       Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parts     Part[]
+  inventory InventoryItem[]
+
+  @@index([companyId])
+  @@index([profileType])
+  @@map("material_definitions")
+}
+
+enum MaterialType {
+  RAW_MATERIAL
+  SEMI_FINISHED
+  FINISHED_PRODUCT
+  COMPONENT
+}
+
+model InventoryItem {
+  id                   String   @id @default(uuid())
+  materialDefinitionId String   @map("material_definition_id")
+  companyId            String   @map("company_id")
+  quantity             Int
+  location             String?
+  batchNumber          String?  @map("batch_number")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  materialDefinition MaterialDefinition @relation(fields: [materialDefinitionId], references: [id])
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([materialDefinitionId])
+  @@index([companyId])
+  @@map("inventory_items")
+}
+
+// =============================================================================
+// AI DOMAIN
+// =============================================================================
+
+model Document {
+  id           String         @id @default(uuid())
+  fileName     String         @map("file_name")
+  filePath     String         @map("file_path")
+  fileSize     Int            @map("file_size")
+  mimeType     String         @map("mime_type")
+  status       DocumentStatus @default(UPLOADED)
+  documentType String?        @map("document_type")
+  assemblyId   String?        @map("assembly_id")
+  companyId    String         @map("company_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assembly           Assembly?          @relation(fields: [assemblyId], references: [id])
+  extractionResults  ExtractionResult[]
+
+  @@index([companyId])
+  @@index([assemblyId])
+  @@index([status])
+  @@map("documents")
+}
+
+enum DocumentStatus {
+  UPLOADED
+  OCR_PROCESSING
+  AI_PROCESSING
+  AI_DONE
+  NORMALIZED
+  CONFIRMED
+  FAILED
+}
+
+model ExtractionResult {
+  id               String              @id @default(uuid())
+  documentId       String              @map("document_id")
+  provider         ExtractionProvider  @default(CLAUDE)
+  status           ExtractionStatus    @default(SUCCESS)
+  companyId        String              @map("company_id")
+  confidence       Float?
+  extractedData    Json                @map("extracted_data")
+  errorMessage     String?             @map("error_message") @db.Text
+  processingTimeMs Int?                @map("processing_time_ms")
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([companyId])
+  @@map("extraction_results")
+}
+
+enum ExtractionProvider {
+  CLAUDE
+  OLLAMA
+  GPT4
+}
+
+enum ExtractionStatus {
+  SUCCESS
+  FAILED
+}
+
+// =============================================================================
+// EVENT SYSTEM
+// =============================================================================
+
+model OutboxEvent {
+  id            String    @id @default(uuid())
+  eventType     String    @map("event_type")
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id")
+  payload       Json
+  companyId     String    @map("company_id")
+  userId        String?   @map("user_id")
+  processedAt   DateTime? @map("processed_at")
+  retryCount    Int       @default(0) @map("retry_count")
+  errorMessage  String?   @map("error_message") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([processedAt])
+  @@index([createdAt])
+  @@map("outbox_events")
+}
+
+// =============================================================================
+// AUDIT LOG
+// =============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  companyId  String   @map("company_id")
+  userId     String?  @map("user_id")
+  changes    Json?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
