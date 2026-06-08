@@ -1,0 +1,76 @@
+name: Fix n8n Secure Cookie
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-n8n:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fix n8n on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          command_timeout: 300s
+          script: |
+            set -e
+
+            echo "=== Finding n8n docker-compose.yml ==="
+            COMPOSE_FILE=$(find /root /opt /var/www -name "docker-compose.yml" -exec grep -l "n8n" {} \; 2>/dev/null | head -1)
+
+            if [ -z "$COMPOSE_FILE" ]; then
+              echo "ERROR: docker-compose.yml with n8n not found!"
+              echo "Checking docker inspect..."
+              docker inspect metalpro-ai-polygon-n8n-1 --format '{{.Config.Labels}}' || true
+              exit 1
+            fi
+
+            echo "Found: $COMPOSE_FILE"
+
+            cd "$(dirname $COMPOSE_FILE)"
+            echo "Working directory: $(pwd)"
+
+            echo ""
+            echo "=== Current n8n environment ==="
+            docker exec metalpro-ai-polygon-n8n-1 env | grep N8N_ || echo "No N8N_ vars visible"
+
+            echo ""
+            echo "=== Checking N8N_SECURE_COOKIE in docker-compose ==="
+            if grep -q "N8N_SECURE_COOKIE" docker-compose.yml; then
+              echo "✅ N8N_SECURE_COOKIE already set:"
+              grep "N8N_SECURE_COOKIE" docker-compose.yml
+            else
+              echo "Adding N8N_SECURE_COOKIE=false..."
+
+              # Backup
+              cp docker-compose.yml docker-compose.yml.backup.$(date +%Y%m%d_%H%M%S)
+
+              # Find n8n service and add variable
+              sed -i '/^  n8n:/,/^  [a-z]/ {
+                /environment:/a\      - N8N_SECURE_COOKIE=false
+              }' docker-compose.yml
+
+              echo "✅ Added N8N_SECURE_COOKIE=false"
+              echo ""
+              echo "Updated config:"
+              grep -A 15 "n8n:" docker-compose.yml | grep -E "^\s*-\s*N8N_"
+            fi
+
+            echo ""
+            echo "=== Restarting n8n ==="
+            docker-compose restart n8n
+
+            echo ""
+            echo "=== Waiting for n8n to start ==="
+            sleep 5
+
+            echo ""
+            echo "=== Checking n8n status ==="
+            docker ps | grep n8n
+
+            echo ""
+            echo "✅ Done! n8n should now be accessible at http://erppark.ru:5678"
+            echo "Login: admin / metaln8n"
