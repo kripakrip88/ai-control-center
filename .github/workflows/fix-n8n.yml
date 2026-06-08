@@ -61,7 +61,7 @@ jobs:
 
             echo ""
             echo "=== Restarting n8n ==="
-            docker-compose restart n8n
+            docker compose restart n8n || docker-compose restart n8n
 
             echo ""
             echo "=== Waiting for n8n to start ==="
