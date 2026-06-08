@@ -53,13 +53,10 @@ jobs:
             echo "=== Setup Environment ==="
             cd apps/erp-web
 
-            # Create .env if doesn't exist
             if [ ! -f .env ]; then
               echo "Creating .env file..."
-              cat > .env << 'ENVEOF'
-DATABASE_URL="postgresql://metaluser:metalpass@localhost:5432/erp_metal"
-NODE_ENV=production
-ENVEOF
+              echo 'DATABASE_URL="postgresql://metaluser:metalpass@localhost:5432/erp_metal"' > .env
+              echo 'NODE_ENV=production' >> .env
             fi
 
             echo "=== Database Migration ==="
