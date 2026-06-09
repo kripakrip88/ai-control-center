@@ -17,12 +17,17 @@ jobs:
           script: |
             cd /var/www/metalpro-ai-polygon
 
-            echo "=== Stopping n8n ==="
-            docker compose stop n8n
+            echo "=== Stopping and removing n8n ==="
+            docker compose down n8n
 
             echo ""
             echo "=== Removing n8n data volume ==="
             docker volume rm metalpro-ai-polygon_n8n_data || true
+
+            echo ""
+            echo "=== Clearing n8n data from PostgreSQL ==="
+            docker exec metalpro-ai-polygon-postgres-1 psql -U metaluser -d metaldb -c "DROP SCHEMA IF EXISTS n8n CASCADE;"
+            docker exec metalpro-ai-polygon-postgres-1 psql -U metaluser -d metaldb -c "CREATE SCHEMA n8n;"
 
             echo ""
             echo "=== Updating config ==="
