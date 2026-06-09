@@ -1,0 +1,64 @@
+name: Reset n8n to Basic Auth
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reset n8n data and enable Basic Auth
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          script: |
+            cd /var/www/metalpro-ai-polygon
+
+            echo "=== Stopping n8n ==="
+            docker compose stop n8n
+
+            echo ""
+            echo "=== Removing n8n data volume ==="
+            docker volume rm metalpro-ai-polygon_n8n_data || true
+
+            echo ""
+            echo "=== Updating config ==="
+            cp docker-compose.yml docker-compose.yml.backup
+
+            # Ensure Basic Auth is enabled
+            sed -i 's/N8N_BASIC_AUTH_ACTIVE=false/N8N_BASIC_AUTH_ACTIVE=true/g' docker-compose.yml
+            sed -i 's/N8N_PROTOCOL=https/N8N_PROTOCOL=http/g' docker-compose.yml
+
+            # Add N8N_SECURE_COOKIE if missing
+            if ! grep -q "N8N_SECURE_COOKIE" docker-compose.yml; then
+              sed -i '/N8N_BASIC_AUTH_ACTIVE/a\      - N8N_SECURE_COOKIE=false' docker-compose.yml
+            fi
+
+            # Disable user management to force Basic Auth
+            if ! grep -q "N8N_USER_MANAGEMENT_DISABLED" docker-compose.yml; then
+              sed -i '/N8N_BASIC_AUTH_ACTIVE/a\      - N8N_USER_MANAGEMENT_DISABLED=true' docker-compose.yml
+            fi
+
+            echo ""
+            echo "=== Updated n8n config ==="
+            grep "N8N_" docker-compose.yml | grep -v "N8N_WEBHOOK\|N8N_ENCRYPTION"
+
+            echo ""
+            echo "=== Starting n8n with clean state ==="
+            docker compose up -d n8n
+
+            sleep 15
+
+            echo ""
+            echo "=== n8n Status ==="
+            docker ps | grep n8n
+            docker logs metalpro-ai-polygon-n8n-1 --tail 30
+
+            echo ""
+            echo "✅ n8n reset complete!"
+            echo "Access: http://erppark.ru:5678"
+            echo "Login: admin"
+            echo "Password: metaln8n"
