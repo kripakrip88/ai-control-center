@@ -1,0 +1,105 @@
+name: Deploy Memory Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/memory-service/**'
+      - '.github/workflows/deploy-memory.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Deploy Memory Service to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "🚀 Deploying Memory Service..."
+
+            # Переход в директорию проекта
+            cd /var/www/ai-control-center || {
+              echo "❌ Directory not found. Creating..."
+              mkdir -p /var/www/ai-control-center
+              cd /var/www/ai-control-center
+              git clone https://github.com/kripakrip88/ai-control-center.git .
+            }
+
+            # Обновление кода
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            # Переход в Memory Service
+            cd services/memory-service
+
+            # Установка Python зависимостей
+            echo "📦 Installing dependencies..."
+            python3.11 -m venv .venv || python3 -m venv .venv
+            source .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            # Создание systemd сервиса
+            echo "⚙️ Setting up systemd service..."
+            sudo tee /etc/systemd/system/memory-service.service > /dev/null <<EOF
+            [Unit]
+            Description=Memory Service (mem0 + Qdrant)
+            After=network.target docker.service
+            Requires=docker.service
+
+            [Service]
+            Type=simple
+            User=$USER
+            WorkingDirectory=/var/www/ai-control-center/services/memory-service
+            Environment="PATH=/var/www/ai-control-center/services/memory-service/.venv/bin:/usr/bin"
+            Environment="QDRANT_HOST=localhost"
+            Environment="QDRANT_PORT=6333"
+            Environment="OLLAMA_BASE_URL=http://localhost:11434"
+            ExecStart=/var/www/ai-control-center/services/memory-service/.venv/bin/python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
+            Restart=always
+            RestartSec=10
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            # Перезапуск сервиса
+            echo "🔄 Restarting service..."
+            sudo systemctl daemon-reload
+            sudo systemctl enable memory-service
+            sudo systemctl restart memory-service
+
+            # Проверка статуса
+            sleep 5
+            if sudo systemctl is-active --quiet memory-service; then
+              echo "✅ Memory Service is running"
+              curl -sf http://localhost:8000/health || echo "⚠️ Health check failed but service is running"
+            else
+              echo "❌ Memory Service failed to start"
+              sudo systemctl status memory-service --no-pager
+              exit 1
+            fi
+
+            echo "✅ Deployment complete!"
+            echo "📍 Memory Service: http://erppark.ru:8000"
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## ✅ Memory Service Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** Memory Service (mem0 + Qdrant)" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** http://erppark.ru:8000" >> $GITHUB_STEP_SUMMARY
+          echo "**Health:** http://erppark.ru:8000/health" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### API Endpoints:" >> $GITHUB_STEP_SUMMARY
+          echo "- POST /api/memory/add - добавить память" >> $GITHUB_STEP_SUMMARY
+          echo "- POST /api/memory/search - поиск" >> $GITHUB_STEP_SUMMARY
+          echo "- PUT /api/memory/{id} - обновить" >> $GITHUB_STEP_SUMMARY
+          echo "- DELETE /api/memory/{id} - удалить" >> $GITHUB_STEP_SUMMARY
