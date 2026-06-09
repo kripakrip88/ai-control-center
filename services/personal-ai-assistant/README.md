@@ -37,12 +37,10 @@ REST API для работы с знаниями:
 - `POST /knowledge/recommendations` — получение рекомендаций
 
 ### 3. AI Gateway
-Единая точка работы с LLM (OpenAI, Claude):
-- Summarization
-- Classification
-- Clustering
-- Embeddings
-- Reranking
+Единая точка работы с AI:
+- **LLM**: Anthropic Claude для summarization, classification, clustering, reranking
+- **Embeddings**: HuggingFace sentence-transformers (локально, без API ключа)
+- Кеширование результатов через Redis
 
 ### 4. Telegram Bot
 Команды:

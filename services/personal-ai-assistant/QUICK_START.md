@@ -30,8 +30,8 @@ cp .env.example .env
 # - POSTGRES_PASSWORD
 # - N8N_PASSWORD
 # - TELEGRAM_BOT_TOKEN
-# - OPENAI_API_KEY
-# - CLAUDE_API_KEY (опционально)
+# - CLAUDE_API_KEY (для LLM)
+# Embeddings используют HuggingFace локально, API ключ не нужен
 nano .env
 ```
 

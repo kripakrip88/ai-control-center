@@ -56,7 +56,7 @@
 7. Trigger: Embedding Generation
 
 **Переменные**:
-- `AI_MODEL` — модель для анализа (default: gpt-4o-mini)
+- `AI_MODEL` — модель для анализа (default: claude-sonnet-4-5)
 
 **Статус**: 🔴 Не реализован
 
@@ -75,7 +75,7 @@
 5. PATCH knowledge (embedding_id)
 
 **Переменные**:
-- `EMBEDDING_MODEL` — модель (default: text-embedding-3-small)
+- `EMBEDDING_MODEL` — модель HuggingFace (default: sentence-transformers/all-MiniLM-L6-v2)
 
 **Статус**: 🔴 Не реализован
 
@@ -178,10 +178,11 @@ workflows/
 
 Все чувствительные данные через Environment Variables в n8n:
 - `TELEGRAM_BOT_TOKEN`
-- `OPENAI_API_KEY`
-- `CLAUDE_API_KEY`
+- `CLAUDE_API_KEY` (для LLM)
 - `KNOWLEDGE_API_URL`
 - `AI_GATEWAY_URL`
+
+**Примечание**: Embeddings используют HuggingFace sentence-transformers локально, API ключ не нужен.
 
 ## Мониторинг workflows
 

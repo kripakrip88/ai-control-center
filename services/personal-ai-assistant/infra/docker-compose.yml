@@ -30,7 +30,7 @@ services:
 
       # Environment Variables для workflows
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Embeddings через HuggingFace (локально)
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - KNOWLEDGE_API_URL=http://knowledge-api:3001
       - AI_GATEWAY_URL=http://ai-gateway:3002
@@ -155,7 +155,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3002
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Embeddings через HuggingFace (локально)
       - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - REDIS_URL=redis://redis:6379
       - CACHE_TTL=3600

@@ -52,14 +52,14 @@ Backend-сервисы отвечают за:
   - `GET /health`, `/version`, `/docs`
 
 ### AI Gateway
-- **Роль**: работа с LLM (OpenAI, Claude)
+- **Роль**: работа с LLM (Anthropic Claude) и embeddings (HuggingFace)
 - **Порт**: 3002
 - **Функции**:
-  - Summarization
-  - Classification
-  - Clustering
-  - Embeddings
-  - Reranking
+  - Summarization (Claude)
+  - Classification (Claude)
+  - Clustering (Claude)
+  - Embeddings (HuggingFace sentence-transformers)
+  - Reranking (Claude)
 - **Endpoints**:
   - `POST /ai/summarize`
   - `POST /ai/classify`
@@ -125,7 +125,7 @@ n8n: Knowledge Analysis Workflow
     ↓
 POST /ai/summarize + /ai/classify
     ↓
-AI Gateway → OpenAI/Claude
+AI Gateway → Anthropic Claude
     ↓
 Knowledge Hub API (update)
     ↓
@@ -139,7 +139,7 @@ n8n: Embedding Generation Workflow
     ↓
 POST /ai/embed
     ↓
-AI Gateway → OpenAI
+AI Gateway → HuggingFace sentence-transformers (локально)
     ↓
 Qdrant (vector storage)
     ↓
