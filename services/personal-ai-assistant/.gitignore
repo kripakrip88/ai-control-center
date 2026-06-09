@@ -1,0 +1,46 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+venv/
+.venv/
+
+# Docker volumes
+postgres_data/
+qdrant_data/
+redis_data/
+n8n_data/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Backups
+*.sql.backup
+*.tar.gz.backup
+backup_*/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

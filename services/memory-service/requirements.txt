@@ -1,0 +1,8 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+pydantic==2.10.6
+python-dotenv==1.0.1
+mem0ai==0.1.50
+qdrant-client==1.13.3
+sentence-transformers==3.3.1
+anthropic==0.42.0
