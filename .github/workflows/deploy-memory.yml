@@ -38,12 +38,16 @@ jobs:
             # Переход в Memory Service
             cd services/memory-service
 
-            # Установка Python зависимостей
-            echo "📦 Installing dependencies..."
+            # Очистка старых данных
+            echo "🧹 Cleaning up old installation..."
+            rm -rf .venv
+
+            # Установка минимальных зависимостей
+            echo "📦 Installing minimal dependencies..."
             python3.11 -m venv .venv || python3 -m venv .venv
             source .venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
+            pip install --no-cache-dir --upgrade pip
+            pip install --no-cache-dir -r requirements-minimal.txt
 
             # Создание systemd сервиса
             echo "⚙️ Setting up systemd service..."

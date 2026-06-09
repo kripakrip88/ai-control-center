@@ -1,0 +1,53 @@
+name: Cleanup Server Disk Space
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Clean up server disk space
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "🔍 Checking disk space before cleanup..."
+            df -h /
+
+            echo ""
+            echo "🧹 Cleaning apt cache..."
+            apt clean
+            apt autoclean
+            apt autoremove -y
+
+            echo ""
+            echo "🧹 Cleaning old logs..."
+            journalctl --vacuum-time=7d
+            find /var/log -type f -name "*.log" -mtime +30 -delete
+            find /var/log -type f -name "*.gz" -delete
+
+            echo ""
+            echo "🧹 Cleaning Docker..."
+            docker system prune -af --volumes || true
+
+            echo ""
+            echo "🧹 Cleaning pip cache..."
+            pip cache purge || true
+            rm -rf ~/.cache/pip
+
+            echo ""
+            echo "🧹 Cleaning old Python packages..."
+            find /usr -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+            echo ""
+            echo "✅ Disk space after cleanup:"
+            df -h /
+
+            echo ""
+            echo "📊 Top 10 largest directories:"
+            du -h /var 2>/dev/null | sort -rh | head -10 || true

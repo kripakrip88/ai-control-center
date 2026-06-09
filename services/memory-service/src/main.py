@@ -5,12 +5,12 @@ from typing import Optional, List, Dict
 import uvicorn
 import os
 
-from .memory_manager import MemoryManager
+from .simple_storage import SimpleMemoryStorage
 
 app = FastAPI(
     title="Memory Service API",
-    description="Vector memory service for AI assistants using Mem0 and Qdrant",
-    version="1.0.0"
+    description="Simple vector memory service using Qdrant",
+    version="2.0.0-minimal"
 )
 
 app.add_middleware(
@@ -21,31 +21,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-memory_manager = MemoryManager()
+storage = SimpleMemoryStorage()
 
 
 class AddMemoryRequest(BaseModel):
     project_id: str
     content: str
+    vector: Optional[List[float]] = None
     metadata: Optional[Dict] = None
 
 
 class SearchMemoryRequest(BaseModel):
     project_id: str
     query: Optional[str] = None
+    query_vector: Optional[List[float]] = None
     limit: int = 10
 
 
 class UpdateMemoryRequest(BaseModel):
     content: str
+    vector: Optional[List[float]] = None
 
 
 @app.get("/")
 async def root():
     return {
-        "service": "Memory Service",
-        "version": "1.0.0",
-        "status": "running"
+        "service": "Memory Service (Minimal)",
+        "version": "2.0.0-minimal",
+        "status": "running",
+        "note": "Lightweight version without heavy ML dependencies"
     }
 
 
@@ -57,12 +61,16 @@ async def health():
 @app.post("/api/memory/add")
 async def add_memory(request: AddMemoryRequest):
     """
-    Добавить новое воспоминание для проекта.
+    Добавить новое воспоминание.
+
+    Если vector не указан - будет создан простой хеш-вектор.
+    Для production используйте внешний embedding сервис.
     """
     try:
-        result = memory_manager.add_memory(
+        result = storage.add_memory(
             project_id=request.project_id,
             content=request.content,
+            vector=request.vector,
             metadata=request.metadata
         )
         return {"success": True, "data": result}
@@ -73,12 +81,15 @@ async def add_memory(request: AddMemoryRequest):
 @app.post("/api/memory/search")
 async def search_memories(request: SearchMemoryRequest):
     """
-    Поиск воспоминаний по проекту (все или семантический поиск).
+    Поиск воспоминаний.
+
+    Можно передать query_vector (рекомендуется) или query (создаст хеш-вектор).
     """
     try:
-        results = memory_manager.get_memories(
+        results = storage.search_memories(
             project_id=request.project_id,
-            query=request.query,
+            query_vector=request.query_vector,
+            query_text=request.query,
             limit=request.limit
         )
         return {"success": True, "data": results}
@@ -92,7 +103,7 @@ async def delete_memory(memory_id: str):
     Удалить воспоминание по ID.
     """
     try:
-        result = memory_manager.delete_memory(memory_id)
+        result = storage.delete_memory(memory_id)
         return {"success": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -104,7 +115,11 @@ async def update_memory(memory_id: str, request: UpdateMemoryRequest):
     Обновить содержимое воспоминания.
     """
     try:
-        result = memory_manager.update_memory(memory_id, request.content)
+        result = storage.update_memory(
+            memory_id,
+            request.content,
+            request.vector
+        )
         return {"success": True, "data": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
