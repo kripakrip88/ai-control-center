@@ -1,0 +1,43 @@
+name: Fix n8n Auth
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable Basic Auth in n8n
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          script: |
+            cd /var/www/metalpro-ai-polygon
+
+            # Backup
+            cp docker-compose.yml docker-compose.yml.bak
+
+            # Replace N8N_BASIC_AUTH_ACTIVE=false with true
+            sed -i 's/N8N_BASIC_AUTH_ACTIVE=false/N8N_BASIC_AUTH_ACTIVE=true/g' docker-compose.yml
+
+            # Add N8N_SECURE_COOKIE if not exists
+            if ! grep -q "N8N_SECURE_COOKIE" docker-compose.yml; then
+              sed -i '/N8N_BASIC_AUTH_ACTIVE/a\      - N8N_SECURE_COOKIE=false' docker-compose.yml
+            fi
+
+            # Change protocol to http
+            sed -i 's/N8N_PROTOCOL=https/N8N_PROTOCOL=http/g' docker-compose.yml
+
+            echo "=== Config changes ==="
+            grep "N8N_BASIC_AUTH\|N8N_SECURE\|N8N_PROTOCOL" docker-compose.yml
+
+            echo ""
+            echo "=== Recreating n8n ==="
+            docker compose down n8n
+            docker compose up -d n8n
+
+            sleep 10
+            docker ps | grep n8n
