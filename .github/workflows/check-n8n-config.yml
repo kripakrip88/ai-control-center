@@ -1,0 +1,110 @@
+name: Check & Fix n8n Config
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and fix n8n config
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          timeout: 300s
+          script: |
+            set -e
+
+            cd /var/www/metalpro-ai-polygon
+
+            echo "=== Current n8n config ==="
+            grep -A 30 "n8n:" docker-compose.yml
+
+            echo ""
+            echo "=== Fixing n8n config ==="
+
+            # Backup
+            cp docker-compose.yml docker-compose.yml.backup.$(date +%Y%m%d_%H%M%S)
+
+            # Fix all n8n settings
+            cat > /tmp/n8n-env.txt << 'EOF'
+      - N8N_SECURE_COOKIE=false
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=metaln8n
+      - N8N_HOST=erppark.ru
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://erppark.ru:5678/webhook
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=metaldb
+      - DB_POSTGRESDB_USER=metaluser
+      - DB_POSTGRESDB_PASSWORD=metalpass
+      - DB_POSTGRESDB_SCHEMA=n8n
+      - N8N_ENCRYPTION_KEY=changeme-in-production
+EOF
+
+            # Replace n8n environment section
+            sed -i '/^  n8n:/,/^    environment:$/d' docker-compose.yml
+            sed -i '/^  n8n:/r /tmp/n8n-env.txt' docker-compose.yml || true
+
+            # Simpler approach - use Python to replace
+            python3 << 'PYTHON'
+import re
+
+with open('docker-compose.yml', 'r') as f:
+    content = f.read()
+
+# Find n8n service and replace environment
+n8n_env = """  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=metaln8n
+      - N8N_HOST=erppark.ru
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://erppark.ru:5678/webhook
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=metaldb
+      - DB_POSTGRESDB_USER=metaluser
+      - DB_POSTGRESDB_PASSWORD=metalpass
+      - DB_POSTGRESDB_SCHEMA=n8n
+      - N8N_ENCRYPTION_KEY=changeme-in-production"""
+
+# Replace n8n service config (everything between "n8n:" and next service or volumes/networks)
+pattern = r'  n8n:.*?(?=\n  [a-z_-]+:|\nvolumes:|\nnetworks:)'
+content = re.sub(pattern, n8n_env, content, flags=re.DOTALL)
+
+with open('docker-compose.yml', 'w') as f:
+    f.write(content)
+PYTHON
+
+            echo ""
+            echo "=== Updated config ==="
+            grep -A 20 "n8n:" docker-compose.yml
+
+            echo ""
+            echo "=== Recreating n8n ==="
+            docker compose down n8n
+            docker compose up -d n8n
+
+            sleep 10
+
+            echo ""
+            echo "=== Checking n8n ==="
+            docker ps | grep n8n
+            docker logs metalpro-ai-polygon-n8n-1 --tail 20
+
+            echo ""
+            echo "✅ Done!"
