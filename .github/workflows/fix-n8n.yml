@@ -60,12 +60,16 @@ jobs:
             fi
 
             echo ""
-            echo "=== Restarting n8n ==="
-            docker compose restart n8n || docker-compose restart n8n
+            echo "=== Stopping n8n ==="
+            docker compose stop n8n || docker-compose stop n8n
+
+            echo ""
+            echo "=== Starting n8n with new config ==="
+            docker compose up -d n8n || docker-compose up -d n8n
 
             echo ""
             echo "=== Waiting for n8n to start ==="
-            sleep 5
+            sleep 10
 
             echo ""
             echo "=== Checking n8n status ==="
