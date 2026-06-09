@@ -8,12 +8,14 @@ class MemoryManager:
     """
 
     def __init__(self):
+        # Используем Ollama для LLM операций mem0 (извлечение сущностей, категоризация)
+        # Claude используется приложениями напрямую для основной логики
         config = {
             "llm": {
-                "provider": "anthropic",
+                "provider": "ollama",
                 "config": {
-                    "model": "claude-sonnet-4-5",
-                    "api_key": os.environ.get("ANTHROPIC_API_KEY"),
+                    "model": "llama3.2",
+                    "ollama_base_url": os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
                 }
             },
             "embedder": {
