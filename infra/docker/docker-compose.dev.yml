@@ -89,6 +89,25 @@ services:
       - aicontrol-net
     restart: unless-stopped
 
+  # Memory Service (Mem0 + Qdrant)
+  memory-service:
+    build:
+      context: ../../services/memory-service
+      dockerfile: Dockerfile
+    container_name: aicontrol-memory-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - qdrant
+    networks:
+      - aicontrol-net
+    restart: unless-stopped
+
 networks:
   aicontrol-net:
     driver: bridge
